@@ -1,0 +1,12 @@
+WHITESPACE = _{ " " | "\t" | "\r" | "\n" }
+COMMENT    = _{ ("/*" ~ (!"*/" ~ ANY)* ~ "*/") | ("//" ~ (!"\n" ~ ANY)* ~ ("\n" | EOI)) }
+
+VertexName  = @{ (('!' .. '}'))+ }
+Arrow       = @{ "->" }
+Dash        = @{ "--" }
+GraphElem     =  { VertexName ~ (Dash ~ VertexName)+ }
+DiGraphElem =  { VertexName ~ (Arrow ~ VertexName)+ }
+DiGraph     =  { DiGraphElem+ }
+Graph     =    { GraphElem+ }
+GeneralGraph = _{ SOI ~ (Graph | DiGraph) ~ EOI}
+
