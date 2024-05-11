@@ -77,13 +77,13 @@ pub struct AdjList {
 #[wasm_bindgen]
 impl AdjList {
     pub fn is_cyclic(&self) -> bool {
-        log(&format!("DFS    :     "       ));
+        log("DFS    :     ");
         for vertex in self.get_vertices_ref().iter(){
             let mut map = HashSet::new();
             let visited = Rc::new( RefCell::new( &mut map));
-            log(&format!("DFS    :     "       ));
+            log("DFS    :     ");
             log(&format!("         {:?}",vertex));
-            DFS::new(self,  visited, vertex).for_each(|x|
+            DFS::new(self,  visited, vertex).for_each(|_x|
                                                       {
                                                           log(&format!("                  {:?}",vertex));        
                                                       }
@@ -140,7 +140,7 @@ impl AdjList {
                 .get(&vertex1)
                 .is_some_and(|set| set.contains(&vertex2))
         } else {
-            return false;
+            false
         }
     }
 
@@ -267,13 +267,13 @@ impl AdjList {
                 ret.push(v.clone());
             }
             let e = self.get_children(&v).clone().unwrap();
-            for child in e.iter().map(|x| x.clone()) {
-                if !visited.contains(&child) {
+            for child in e.iter() {
+                if !visited.contains(child) {
                     stack.push(child.clone());
                 }
             }
         }
-        ret.into_iter().map(|x| x.clone()).collect()
+        ret.into_iter().collect()
     }
 
     /*fn dfs_ref<'a>(&'a self, vertex: &'a Vertex) -> DFS<'a> {
@@ -312,7 +312,7 @@ impl AdjList {
         let mut ret = vec![];
         while let Some(v) = stack.pop_front() {
             ret.push(v);
-            let e = self.get_children_ref(&v).clone().unwrap();
+            let e = self.get_children_ref(v).clone().unwrap();
             for child in e.iter() {
                 if !visited.contains(child) {
                     stack.push_back(child);
@@ -332,14 +332,14 @@ impl AdjList {
         while let Some(v) = stack.pop_front() {
             ret.push(v.clone());
             let e = self.get_children(&v).clone().unwrap();
-            for child in e.iter().map(|x| x.clone()) {
+            for child in e.iter().cloned() {
                 if !visited.contains(&child) {
                     stack.push_back(child.clone());
                     visited.insert(child);
                 }
             }
         }
-        ret.into_iter().map(|x| x.clone()).collect()
+        ret.into_iter().collect()
     }
 
     pub fn get_svg(&self) -> String where
@@ -349,7 +349,7 @@ impl AdjList {
         //self.get_edges()
         let mut map = HashMap::new();
         let bind = self.get_vertices();
-        bind.into_iter().for_each(|x| {
+        bind.iter().for_each(|x| {
             let shape = ShapeKind::Circle(x.into());
             let look = StyleAttr::simple();
             let size = Point::new(30., 30.);
@@ -357,7 +357,7 @@ impl AdjList {
             let handle = vg.add_node(elem);
             map.insert(x, handle);
         });
-        self.get_edges().into_iter().for_each(|edge| {
+        self.get_edges().iter().for_each(|edge| {
             let Edge(v1, v2) = edge;
             let v1 = map.get(v1).unwrap();
             let v2 = map.get(v2).unwrap();

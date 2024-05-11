@@ -1,11 +1,11 @@
-use std::borrow::Borrow;
+
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::hash::Hash;
-use std::rc::Rc;
+
 
 use layout::backends::svg::SVGWriter;
 use layout::core::{base::Orientation, geometry::Point, style::*};
-use layout::gv::parser::ast::ArrowKind;
+
 use layout::std_shapes::shapes::*;
 use layout::topo::layout::VisualGraph;
 //use layout::topo::placer::Placer;
@@ -99,7 +99,7 @@ where
             for child in self
                 .get_children(v)
                 .expect("this shouldnt happen")
-                .into_iter()
+                .iter()
             {
                 if !visited.contains(child) {
                     stack.push(child);
@@ -121,7 +121,7 @@ where
             for child in self
                 .get_children(v)
                 .expect("this shouldnt happen")
-                .into_iter()
+                .iter()
             {
                 if !visited.contains(child) {
                     visited.insert(child);
@@ -139,7 +139,7 @@ where
         //self.get_edges()
         let mut map = HashMap::new();
         let bind  = self.get_vertices();
-        bind.into_iter().for_each(|x| {
+        bind.iter().for_each(|x| {
             let shape = ShapeKind::Circle(x.into());
             let look = StyleAttr::simple();
             let size = Point::new(30., 30.);
@@ -147,7 +147,7 @@ where
             let handle = vg.add_node(elem);
             map.insert(x, handle);
         });
-        self.get_edges().into_iter().for_each(|edge|{
+        self.get_edges().iter().for_each(|edge|{
             let (v1,v2) = edge;
             let v1 = map.get(v1).unwrap();
             let v2 = map.get(v2).unwrap();

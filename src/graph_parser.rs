@@ -1,5 +1,5 @@
-use pest::{error::Error, iterators::Pairs, pratt_parser::PrattParser, Parser};
-use pest_derive::Parser;
+use pest::{error::Error, iterators::Pairs, Parser};
+
 
 use crate::{AdjList, Vertex};
 
@@ -75,7 +75,7 @@ pub enum Op {
 }
 
 pub fn parse(prog: &str) -> Result<AdjList, Error<Rule>> {
-    let mut ret: _ = AdvancedSyntaxParser::parse(Rule::GeneralGraph, &prog)?.into_iter();
+    let ret: _ = AdvancedSyntaxParser::parse(Rule::GeneralGraph, prog)?;
     let mut list = AdjList::default();
     //let mut op_stack = vec![];
     //let mut val_stack = vec![];
@@ -94,7 +94,7 @@ fn graph_expr<'a>(ret: Pairs<'a, Rule>, list: &mut AdjList) -> Vec<Expr<'a>> {
     use Direction::*;
     use Expr::*;
     use Op::*;
-    let mut wait :Option<u32> = None;
+    let _wait :Option<u32> = None;
     //let mut
     for elem in ret.into_iter() {
         match elem.as_rule() {
@@ -116,7 +116,7 @@ fn graph_expr<'a>(ret: Pairs<'a, Rule>, list: &mut AdjList) -> Vec<Expr<'a>> {
 
             }
             Rule::VertexName => {
-                val_stack.push(Expr::Var(elem.as_str().into()));
+                val_stack.push(Expr::Var(elem.as_str()));
                 list.add_vertex(elem.as_str().into());
 
                 while !op_stack.is_empty() && val_stack.len() > 1 {
@@ -150,7 +150,7 @@ fn graph_expr<'a>(ret: Pairs<'a, Rule>, list: &mut AdjList) -> Vec<Expr<'a>> {
             }
 
             Rule::GraphSingleton => (),
-            rest => unreachable!(format!("{:?}",rest)),
+            rest => unreachable!("{:?}",rest),
         };
         
     }
@@ -162,7 +162,7 @@ impl<'a> Expr<'a> {
 
     fn eval(self, other: Self, op: Op, list: &mut AdjList) -> Self {
         use Direction::*;
-        use Expr::*;
+        
         use Op::*;
         match (op, self, other) {
             (Arrow(Left), target, source) | (Arrow(Right), source, target) => {
@@ -193,14 +193,14 @@ impl<'a> Expr<'a> {
             }
             (x @ Expr::Var(_), Expr::Bracket(y)) => {
                 let ret = y
-                    .into_iter()
+                    .iter()
                     .map(move |y| x.clone().cartesian_product(y.clone(), list))
                     .collect();
                 return Expr::Bracket(ret);
             }
             (Expr::Bracket(x), Expr::Var(y)) => {
                 let _: () = x
-                    .into_iter()
+                    .iter()
                     .map(|x| {
                         x.clone().cartesian_product(Expr::Var(y), list);
                     })
@@ -209,8 +209,8 @@ impl<'a> Expr<'a> {
             }
             (Expr::Bracket(x), Expr::Bracket(y)) => {
                 let mut ret = vec![];
-                for e1 in x.into_iter() {
-                    for e2 in y.into_iter() {
+                for e1 in x.iter() {
+                    for e2 in y.iter() {
                         let v_stack = e1.clone().cartesian_product(e2.clone(), list);
                         ret.push(v_stack);
                     }
@@ -229,14 +229,14 @@ impl<'a> Expr<'a> {
             }
             (x @ Expr::Var(_), Expr::Bracket(y)) => {
                 let ret = y
-                    .into_iter()
+                    .iter()
                     .map(move |y| x.clone().cartesian_product(y.clone(), list))
                     .collect();
                 return Expr::Bracket(ret);
             }
             (Expr::Bracket(x), Expr::Var(y)) => {
                 let _: () = x
-                    .into_iter()
+                    .iter()
                     .map(|x| {
                         x.clone().cartesian_product(Expr::Var(y), list);
                     })
@@ -245,7 +245,7 @@ impl<'a> Expr<'a> {
             }
             (Expr::Bracket(x), Expr::Bracket(y)) => {
                 let mut ret = vec![];
-                for (e1, e2) in x.into_iter().zip(y.into_iter()) {
+                for (e1, e2) in x.iter().zip(y.iter()) {
                     {
                         let v_stack = e1.clone().cartesian_product(e2.clone(), list);
                         ret.push(v_stack);
