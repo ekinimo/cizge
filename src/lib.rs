@@ -1,15 +1,27 @@
 mod graph;
-mod utils;
 mod graph_parser;
-use std::{collections::{HashMap, HashSet, VecDeque}, rc::Rc};
+mod utils;
+use graph::Graph;
+use layout::{
+    backends::svg::SVGWriter,
+    core::{base::Orientation, geometry::Point, style::StyleAttr},
+    std_shapes::shapes::{Arrow, Element, ShapeKind},
+    topo::layout::VisualGraph,
+};
 use std::hash::Hash;
-use graph::{ Graph};
-use layout::{core::{base::Orientation, style::StyleAttr, geometry::Point}, topo::layout::VisualGraph, std_shapes::shapes::{ShapeKind, Element, Arrow}, backends::svg::SVGWriter};
+use std::{
+    cell::RefCell,
+    collections::{hash_set, vec_deque, HashMap, HashSet, VecDeque},
+    rc::Rc,
+};
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
 extern "C" {
     fn alert(s: &str);
+
+    #[wasm_bindgen(js_namespace = console)]
+    fn log(s: &str);
 }
 
 #[wasm_bindgen]
@@ -24,14 +36,12 @@ pub fn wuhu() -> String {
 }
 
 #[wasm_bindgen]
-#[derive(Hash, Eq, PartialEq, Clone, Default,Debug)]
+#[derive(Hash, Eq, PartialEq, Clone, Default, Debug)]
 pub struct Vertex(String);
 
 #[wasm_bindgen]
-#[derive(Hash, Eq, PartialEq, Clone, Default,Debug)]
-pub struct Edge(Vertex,Vertex);
-
-
+#[derive(Hash, Eq, PartialEq, Clone, Default, Debug)]
+pub struct Edge(Vertex, Vertex);
 
 impl From<Vertex> for String {
     fn from(value: Vertex) -> Self {
@@ -49,19 +59,15 @@ impl From<&&Vertex> for String {
     }
 }
 
-
 #[wasm_bindgen]
-impl Vertex{
-    pub fn new(val:&str) -> Self{
+impl Vertex {
+    pub fn new(val: &str) -> Self {
         Self(val.to_string())
     }
 }
 
-
-
-
 #[wasm_bindgen]
-#[derive(Clone, Default,Debug)]
+#[derive(Clone, Default, Debug)]
 pub struct AdjList {
     adj_list: HashMap<usize, HashSet<usize>>,
     vertices: Vec<Rc<Vertex>>,
@@ -69,13 +75,28 @@ pub struct AdjList {
 }
 
 #[wasm_bindgen]
-impl  AdjList
-{
-    pub fn new()->Self{
+impl AdjList {
+    pub fn is_cyclic(&self) -> bool {
+        log(&format!("DFS    :     "       ));
+        for vertex in self.get_vertices_ref().iter(){
+            let mut map = HashSet::new();
+            let visited = Rc::new( RefCell::new( &mut map));
+            log(&format!("DFS    :     "       ));
+            log(&format!("         {:?}",vertex));
+            DFS::new(self,  visited, vertex).for_each(|x|
+                                                      {
+                                                          log(&format!("                  {:?}",vertex));        
+                                                      }
+            );
+
+        }
+        false
+    }
+    pub fn new() -> Self {
         Self::default()
     }
 
-    pub fn try_parse(prog:&str) -> Result<AdjList,String>{
+    pub fn try_parse(prog: &str) -> Result<AdjList, String> {
         graph_parser::parse(prog).map_err(|x| x.to_string())
     }
 
@@ -84,6 +105,10 @@ impl  AdjList
     }
     pub fn get_vertex(&self, idx: usize) -> Option<Vertex> {
         self.vertices.get(idx).map(|c| c.as_ref()).cloned()
+    }
+
+    fn get_vertex_ref(&self, idx: usize) -> Option<&Vertex> {
+        self.vertices.get(idx).map(|c| c.as_ref())
     }
 
     pub fn insert_vertex(&mut self, vertex: Vertex) -> usize {
@@ -132,6 +157,19 @@ impl  AdjList
         )
     }
 
+    fn get_predecessors_ref(&self, vertex: &Vertex) -> Option<Box<[&Vertex]>> {
+        let vertex = self.get_vertex_idx(vertex)?;
+
+        Some(
+            self.adj_list
+                .iter()
+                .filter(|(_, v)| v.contains(&vertex))
+                .map(|x| x.0)
+                .map(|x| self.get_vertex_ref(*x).unwrap())
+                .collect(),
+        )
+    }
+
     pub fn get_children(&self, vertex: &Vertex) -> Option<Box<[Vertex]>> {
         let vertex = self.get_vertex_idx(vertex)?;
         Some(
@@ -139,6 +177,17 @@ impl  AdjList
                 .get(&vertex)?
                 .iter()
                 .filter_map(|x| self.get_vertex(*x))
+                .collect(),
+        )
+    }
+
+    fn get_children_ref(&self, vertex: &Vertex) -> Option<Box<[&Vertex]>> {
+        let vertex = self.get_vertex_idx(vertex)?;
+        Some(
+            self.adj_list
+                .get(&vertex)?
+                .iter()
+                .filter_map(|x| self.get_vertex_ref(*x))
                 .collect(),
         )
     }
@@ -156,7 +205,6 @@ impl  AdjList
         }
     }
 
-    
     pub fn add_edge(&mut self, v1: &Vertex, v2: &Vertex) {
         let v1 = self.insert_vertex(v1.clone());
         let v2 = self.insert_vertex(v2.clone());
@@ -176,17 +224,38 @@ impl  AdjList
     }
 
     pub fn get_edges(&self) -> Box<[Edge]> {
-        self.adj_list.iter().flat_map(|(k, v)| {
-            v.iter()
-                .map(move |v| Edge(self.get_vertex(*k).unwrap(), self.get_vertex(*v).unwrap()) )
-        }).collect()
+        self.adj_list
+            .iter()
+            .flat_map(|(k, v)| {
+                v.iter()
+                    .map(move |v| Edge(self.get_vertex(*k).unwrap(), self.get_vertex(*v).unwrap()))
+            })
+            .collect()
+    }
+
+    fn get_vertices_ref(&self) -> Box<[&Vertex]> {
+        self.vertices.iter().map(|x| x.as_ref()).collect()
+    }
+
+    fn get_edges_ref(&self) -> Box<[(&Vertex, &Vertex)]> {
+        self.adj_list
+            .iter()
+            .flat_map(|(k, v)| {
+                v.iter().map(move |v| {
+                    (
+                        self.get_vertex_ref(*k).unwrap(),
+                        self.get_vertex_ref(*v).unwrap(),
+                    )
+                })
+            })
+            .collect()
     }
 
     pub fn get_vertex_len(&self) -> usize {
         self.vertices.len()
     }
 
-    pub fn dfs(& self, vertex: & Vertex) -> Vec<Vertex> {
+    pub fn dfs(&self, vertex: &Vertex) -> Vec<Vertex> {
         let mut visited = HashSet::new();
 
         let mut stack = vec![];
@@ -197,12 +266,8 @@ impl  AdjList
                 visited.insert(v.clone());
                 ret.push(v.clone());
             }
-            let e =  self
-                .get_children(&v)
-                .clone()
-                .unwrap();
-            for child in e.iter().map(|x|x.clone())
-            {
+            let e = self.get_children(&v).clone().unwrap();
+            for child in e.iter().map(|x| x.clone()) {
                 if !visited.contains(&child) {
                     stack.push(child.clone());
                 }
@@ -211,7 +276,53 @@ impl  AdjList
         ret.into_iter().map(|x| x.clone()).collect()
     }
 
-    pub fn bfs(& self, vertex: & Vertex) -> Vec<Vertex> {
+    /*fn dfs_ref<'a>(&'a self, vertex: &'a Vertex) -> DFS<'a> {
+        /*let mut visited = HashSet::new();
+
+        let mut stack = vec![];
+        stack.push(vertex);
+        let mut ret = vec![];
+        while let Some(v) = stack.pop() {
+            if !visited.contains(&v) {
+                visited.insert(v);
+                ret.push(v);
+            }
+            let e =  self
+                .get_children_ref(&v)
+                .clone()
+                .unwrap();
+            for child in e.iter()
+            {
+                if !visited.contains(child) {
+                    stack.push(child);
+                }
+            }
+        }
+        ret.into_iter().collect()*/
+        let mut visited = HashSet::new();
+        DFS::new(self, &mut visited,vertex)
+    }*/
+
+    fn bfs_ref<'a>(&'a self, vertex: &'a Vertex) -> Vec<&Vertex> {
+        let mut visited = HashSet::new();
+
+        let mut stack = VecDeque::new();
+        visited.insert(vertex);
+        stack.push_back(vertex);
+        let mut ret = vec![];
+        while let Some(v) = stack.pop_front() {
+            ret.push(v);
+            let e = self.get_children_ref(&v).clone().unwrap();
+            for child in e.iter() {
+                if !visited.contains(child) {
+                    stack.push_back(child);
+                    visited.insert(child);
+                }
+            }
+        }
+        ret.into_iter().collect()
+    }
+    pub fn bfs(&self, vertex: &Vertex) -> Vec<Vertex> {
         let mut visited = HashSet::new();
 
         let mut stack = VecDeque::new();
@@ -220,14 +331,9 @@ impl  AdjList
         let mut ret = vec![];
         while let Some(v) = stack.pop_front() {
             ret.push(v.clone());
-            let e =  self
-                .get_children(&v)
-                .clone()
-                .unwrap();
-            for child in e.iter().map(|x|x.clone())
-            {
+            let e = self.get_children(&v).clone().unwrap();
+            for child in e.iter().map(|x| x.clone()) {
                 if !visited.contains(&child) {
-                    
                     stack.push_back(child.clone());
                     visited.insert(child);
                 }
@@ -236,13 +342,13 @@ impl  AdjList
         ret.into_iter().map(|x| x.clone()).collect()
     }
 
-    pub fn get_svg(&self) ->String where
+    pub fn get_svg(&self) -> String where
          //String : for <'a,'b> From<&'a &'b Vertex> ,
     {
         let mut vg = VisualGraph::new(Orientation::LeftToRight);
         //self.get_edges()
         let mut map = HashMap::new();
-        let bind  = self.get_vertices();
+        let bind = self.get_vertices();
         bind.into_iter().for_each(|x| {
             let shape = ShapeKind::Circle(x.into());
             let look = StyleAttr::simple();
@@ -251,8 +357,8 @@ impl  AdjList
             let handle = vg.add_node(elem);
             map.insert(x, handle);
         });
-        self.get_edges().into_iter().for_each(|edge|{
-            let Edge(v1,v2) = edge;
+        self.get_edges().into_iter().for_each(|edge| {
+            let Edge(v1, v2) = edge;
             let v1 = map.get(v1).unwrap();
             let v2 = map.get(v2).unwrap();
             let arr = Arrow::simple("");
@@ -262,7 +368,109 @@ impl  AdjList
         vg.do_it(false, false, false, &mut svg);
         svg.finalize()
     }
+}
 
+
+
+#[derive(Debug, Clone)]
+struct DFS<'a> {
+    pub start: &'a Vertex,
+    pub to_visit: Vec<&'a Vertex>,
+    pub visited: Rc<RefCell<&'a mut HashSet<&'a Vertex>>>,
+    pub graph: &'a AdjList,
+}
+
+impl<'a> DFS<'a> {
+    fn new(
+        graph: &'a AdjList,
+        visited: Rc<RefCell<&'a mut HashSet<&'a Vertex>>>,
+        start: &'a Vertex,
+    ) -> Self {
+        let to_visit = vec![start];
+        //let mut visited = Rc::new(RefCell::new(set));
+        //visited.borrow_mut().insert(start);
+
+        Self {
+            start,
+            to_visit,
+            visited,
+            graph,
+        }
+    }
+
+    pub fn visited_contains(&self, value: &Vertex) -> bool {
+        self.visited.borrow().contains(value)
+    }
+
+    pub fn to_visit_iter(&self) -> std::slice::Iter<'_, &Vertex> {
+        self.to_visit.iter()
+    }
+}
+
+impl<'a> Iterator for DFS<'a> {
+    type Item = &'a Vertex;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let candidate = self.to_visit.pop()?;
+        if !self.visited.borrow().contains(candidate) {
+            self.visited.borrow_mut().insert(candidate);
+        }
+        for child in self.graph.get_children_ref(candidate).unwrap().iter() {
+            if !self.visited.borrow().contains(child) {
+                self.to_visit.push(child);
+            }
+        }
+        Some(candidate)
+    }
+}
+
+struct BFS<'a> {
+    start: &'a Vertex,
+    to_visit: VecDeque<&'a Vertex>,
+    visited: HashSet<&'a Vertex>,
+    graph: &'a AdjList,
+}
+
+impl<'a> BFS<'a> {
+    fn new(start: &'a Vertex, graph: &'a AdjList) -> Self {
+        let mut to_visit = VecDeque::new();
+        let mut visited = HashSet::new();
+        visited.insert(start);
+        to_visit.push_back(start);
+        Self {
+            start,
+            to_visit,
+            visited,
+            graph,
+        }
+    }
+
+    pub fn visited_contains(&self, value: &Vertex) -> bool {
+        self.visited.contains(value)
+    }
+
+    pub fn visited_iter(&self) -> hash_set::Iter<'_, &Vertex> {
+        self.visited.iter()
+    }
+
+    pub fn to_visit_iter(&self) -> vec_deque::Iter<'_, &Vertex> {
+        self.to_visit.iter()
+    }
+}
+
+impl<'a> Iterator for BFS<'a> {
+    type Item = &'a Vertex;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let candidate = self.to_visit.pop_front()?;
+        for child in self.graph.get_children_ref(candidate).unwrap().iter() {
+            if !self.visited.contains(child) {
+                self.to_visit.push_back(child);
+                self.visited.insert(child);
+            }
+        }
+        Some(candidate)
+    }
 }
 
 /*
@@ -307,7 +515,7 @@ where
 impl<'a, Vertex> Graph<Vertex> for AdjList<Vertex>
 where
     Vertex: Hash + Eq + Clone,
-    
+
 {
     fn contains_vertex(&self, vertex: &Vertex) -> bool {
         self.vertex_idx.contains_key(vertex)
@@ -362,7 +570,7 @@ where
         }
     }
 
-    
+
     fn add_edge_between(&mut self, v1: &Vertex, v2: &Vertex) {
         let v1 = self.insert_vertex(v1.clone());
         let v2 = self.insert_vertex(v2.clone());
@@ -404,7 +612,7 @@ where
         for (vertex,nboors) in it  {
            for nboor in nboors{
                ret.add_edge_between(&vertex, &nboor);
-           } 
+           }
         }
         ret
     }
