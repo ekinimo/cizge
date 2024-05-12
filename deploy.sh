@@ -6,7 +6,7 @@ wasm-pack build --release
 (
 	cd ./www
 	npm install
-	npm build --release
+	npm run build --release
 )
 git checkout deploy
 mv ./www/dist/* .
