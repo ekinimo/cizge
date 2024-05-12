@@ -10,7 +10,7 @@ wasm-pack build --release
 )
 git checkout deploy
 mv ./www/dist/* .
-git rm *.js *.wasm *.html
+(git rm *.js *.wasm *.html || echo "Could not $(git rm)")
 git add *.js *.wasm *.html
 git commit -m "auto deploy"
 git push
