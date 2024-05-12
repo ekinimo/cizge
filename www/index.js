@@ -8,11 +8,6 @@ input_text.addEventListener("input", (event) => {
     let elem = document.getElementById("img");
         console.log(elem);
         elem.innerHTML = ret.get_svg();
-        
-
-    let elemerr = document.getElementById("err");
-        elemerr.textContent = ret.is_cyclic() ? " graph is cyclic" : "" ;
-        //elem = ret.get_svg();
 
     }catch (err){
         let elem = document.getElementById("err");
