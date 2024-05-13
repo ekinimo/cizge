@@ -1,9 +1,50 @@
-<!DOCTYPE html>
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/css" href="style/xhtml-default.css"?>
+<?xml-stylesheet type="text/css" title="ruby" href="style/ruby.css"?>
+<?xml-stylesheet type="text/css" href="style/style.css"?>
+<?xml-stylesheet type="text/css" href="style/hover.css"?>
+<!DOCTYPE html PUBLIC
+          "-//W3C//DTD XHTML 1.1 plus MathML 2.0 plus SVG 1.1//EN"
+          "http://www.w3.org/2002/04/xhtml-math-svg/xhtml-math-svg-flat.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" dir="ltr">
+
 <html>
   <head>
     <meta charset="utf-8">
     <title>Cizge</title>
     <style>
+     svg {
+         display: block;
+         width: 20%;
+         margin: 25px auto;
+         border: 1px solid grey;
+         stroke: #006600;
+     }
+     #nodes polygon:hover {
+         fill: orange;
+     }
+     #nodes rect:hover {
+         fill: blue
+     }
+     #nodes path:hover {
+         fill: orange;
+         stroke:orange;
+     }
+     #nodes ellipse:hover {
+         fill: orange
+     }
+     #center {
+         fill: #00cc00;
+     }
+     #top {
+         fill: #cc3333;
+     }
+     #right {
+         fill: #663399;
+     }
+     #left {
+         fill: #bada55;
+     }
      
      .box {
          display: flex;

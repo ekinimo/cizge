@@ -55,11 +55,11 @@
 /******/ 		"../pkg/gracalc_bg.wasm": function() {
 /******/ 			return {
 /******/ 				"./gracalc_bg.js": {
-/******/ 					"__wbg_alert_cbfbbd7838bc4997": function(p0i32,p1i32) {
-/******/ 						return installedModules["../pkg/gracalc_bg.js"].exports["__wbg_alert_cbfbbd7838bc4997"](p0i32,p1i32);
-/******/ 					},
 /******/ 					"__wbg_log_2ba3a5c05dd47201": function(p0i32,p1i32) {
 /******/ 						return installedModules["../pkg/gracalc_bg.js"].exports["__wbg_log_2ba3a5c05dd47201"](p0i32,p1i32);
+/******/ 					},
+/******/ 					"__wbg_alert_cbfbbd7838bc4997": function(p0i32,p1i32) {
+/******/ 						return installedModules["../pkg/gracalc_bg.js"].exports["__wbg_alert_cbfbbd7838bc4997"](p0i32,p1i32);
 /******/ 					},
 /******/ 					"__wbindgen_string_new": function(p0i32,p1i32) {
 /******/ 						return installedModules["../pkg/gracalc_bg.js"].exports["__wbindgen_string_new"](p0i32,p1i32);
@@ -174,7 +174,7 @@
 /******/ 				promises.push(installedWasmModuleData);
 /******/ 			else {
 /******/ 				var importObject = wasmImportObjects[wasmModuleId]();
-/******/ 				var req = fetch(__webpack_require__.p + "" + {"../pkg/gracalc_bg.wasm":"a0b103f4f4174242ac2b"}[wasmModuleId] + ".module.wasm");
+/******/ 				var req = fetch(__webpack_require__.p + "" + {"../pkg/gracalc_bg.wasm":"177d2a9a55805efcad36"}[wasmModuleId] + ".module.wasm");
 /******/ 				var promise;
 /******/ 				if(importObject instanceof Promise && typeof WebAssembly.compileStreaming === 'function') {
 /******/ 					promise = Promise.all([WebAssembly.compileStreaming(req), importObject]).then(function(items) {
