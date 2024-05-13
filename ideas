@@ -1,0 +1,29 @@
+- Sets / Set operations / builders / literals / pattern matching
+  - Thet would be pretty handy with predefined infinite sets. Maybe we can even offload some work to smt solvers
+  - Some prolog like engine would be handy
+  - Ordered tuples makes sense as well
+- Seperate out Graph trait functions to different traits so they can accept different generics etc.
+- Adj Mat parser
+- Graph operations !!!!
+- Trees
+- Undirected Graphs
+- Traversers (DFS/BFS that returns a generator in language)
+- Node and edge attributes (should be pattern matchable as well and work nice with sets)
+- graph functions
+- graph matchers?
+- language blocks that take a language and produces its syntax tree so we can work with it in the language 
+  (leverage full potential of pest and maybe include treesitter)
+- jq like functionality
+
+- Custom new Renderable for math blocks in svg writer. we should somehow match the container size to mathml block. 
+  maybe prerender them to get their size? but maybe we could just use some css magic ?
+- Customizable output for graph to svg. atm svg that is rendered does not have any customizability. We should provide a way to
+  insert properties to the tags. Also a way to mark edges and vertices is needed.
+- Renaming in svg writer is really wonky. we should have a proper templating system. replacing ::{number}:: is a good start but maybe 
+  ban that name from atoms?
+- latex escape should not care about whitespace and it should be a seperate atom
+- apropos we should introduce new atoms like : 
+   - tagged name
+   - name with property
+   - string escape etc.
+- binop parser
