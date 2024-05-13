@@ -226,7 +226,7 @@ impl<'a> Expr<'a> {
                 for e1 in x.iter() {
                     for e2 in y.iter() {
                         let v_stack =match dir {
-                            Direction::Right => e2.clone().cartesian_product(dir,e1.clone(), list),
+                            //Direction::Right => e2.clone().cartesian_product(dir,e1.clone(), list),
                             _ =>  e1.clone().cartesian_product(dir,e2.clone(), list),
                         };
                         
@@ -277,7 +277,7 @@ impl<'a> Expr<'a> {
             (Expr::Bracket(x), Expr::Bracket(y)) => {
                 let mut ret = vec![];
                 let iter = match dir {
-                    Direction::Right => y.iter().zip(x.iter()),
+                    //Direction::Right => y.iter().zip(x.iter()),
                     _ => x.iter().zip(y.iter())
                     
                 };
