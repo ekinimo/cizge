@@ -61,7 +61,7 @@ pub enum Expr<'a> {
     Bracket(Box<[Expr<'a>]>),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone,Copy)]
 pub enum Direction {
     Left,
     Right,
@@ -165,53 +165,71 @@ impl<'a> Expr<'a> {
         
         use Op::*;
         match (op, self, other) {
-            (Arrow(Left), target, source) | (Arrow(Right), source, target) => {
-                source.cartesian_product(target, list)
+            (Arrow(arr@Left), target, source) | (Arrow(arr@Right), source, target) => {
+                source.cartesian_product(arr,target, list)
             }
 
-            (FatArrow(Left), target, source) | (FatArrow(Right), source, target) => {
-                source.par_sum(target, list)
+            (FatArrow(arr@Left), target, source) | (FatArrow(arr@Right), source, target) => {
+                source.par_sum(arr,target, list)
             }
 
-            (FatArrow(Both), source, target) => {
-                target.clone().par_sum(source.clone(), list);
-                source.par_sum(target, list)
+            (FatArrow(arr@Both), source, target) => {
+                target.clone().par_sum(arr,source.clone(), list);
+                source.par_sum(arr,target, list)
             }
-            (Arrow(Both), source, target) => {
-                target.clone().cartesian_product(source.clone(), list);
-                source.cartesian_product(target, list)
+            (Arrow(arr@Both), source, target) => {
+                target.clone().cartesian_product(arr,source.clone(), list);
+                source.cartesian_product(arr,target, list)
             }
         }
     }
 
-    fn cartesian_product(self, other: Self, list: &mut AdjList) -> Expr<'a> {
+    fn cartesian_product(self, dir: Direction,other: Self, list: &mut AdjList) -> Expr<'a> {
         //let mut val_stack = val_stack;
         match (self, other) {
             (Expr::Var(x), Expr::Var(y)) => {
                 list.add_edge(&x.into(), &y.into());
-                return Expr::Var(y);
+                return Expr::Var( match dir  {
+                    
+                    Direction::Right => x,
+                    _ => y,
+                    
+                });
             }
-            (x @ Expr::Var(_), Expr::Bracket(y)) => {
+            ( Expr::Var(x), Expr::Bracket(y)) => {
                 let ret = y
                     .iter()
-                    .map(move |y| x.clone().cartesian_product(y.clone(), list))
+                    .map(move |y| Expr::Var(x).cartesian_product(dir,y.clone(), list))
                     .collect();
-                return Expr::Bracket(ret);
+                return match dir {
+                    Direction::Right => Expr::Var(x),
+                    _ => Expr::Bracket(ret),
+                    
+                }
             }
             (Expr::Bracket(x), Expr::Var(y)) => {
-                let _: () = x
+                let ret = x
                     .iter()
                     .map(|x| {
-                        x.clone().cartesian_product(Expr::Var(y), list);
+                        x.clone().cartesian_product(dir,Expr::Var(y), list)
                     })
                     .collect();
-                return Expr::Var(y);
+                return match dir {
+                    Direction::Right => Expr::Bracket(ret),
+                    _ => Expr::Var(y),
+                    
+                }
+                
             }
             (Expr::Bracket(x), Expr::Bracket(y)) => {
                 let mut ret = vec![];
                 for e1 in x.iter() {
                     for e2 in y.iter() {
-                        let v_stack = e1.clone().cartesian_product(e2.clone(), list);
+                        let v_stack =match dir {
+                            Direction::Right => e2.clone().cartesian_product(dir,e1.clone(), list),
+                            _ =>  e1.clone().cartesian_product(dir,e2.clone(), list),
+                        };
+                        
                         ret.push(v_stack);
                     }
                 }
@@ -220,34 +238,52 @@ impl<'a> Expr<'a> {
         };
     }
 
-    fn par_sum(self, other: Self, list: &mut AdjList) -> Expr<'a> {
+    fn par_sum(self, dir: Direction,other: Self, list: &mut AdjList) -> Expr<'a> {
         //let mut val_stack = val_stack;
         match (self, other) {
             (Expr::Var(x), Expr::Var(y)) => {
                 list.add_edge(&x.into(), &y.into());
-                return Expr::Var(y);
+                return Expr::Var( match dir  {
+                    
+                    Direction::Right => x,
+                    _ => y,
+                    
+                });
             }
-            (x @ Expr::Var(_), Expr::Bracket(y)) => {
+            ( Expr::Var(x), Expr::Bracket(y)) => {
                 let ret = y
                     .iter()
-                    .map(move |y| x.clone().cartesian_product(y.clone(), list))
+                    .map(move |y| Expr::Var(x).par_sum(dir,y.clone(), list))
                     .collect();
-                return Expr::Bracket(ret);
+                return match dir {
+                    Direction::Right => Expr::Var(x),
+                    _ => Expr::Bracket(ret),
+                    
+                }
             }
             (Expr::Bracket(x), Expr::Var(y)) => {
-                let _: () = x
+                let ret = x
                     .iter()
                     .map(|x| {
-                        x.clone().cartesian_product(Expr::Var(y), list);
+                        x.clone().par_sum(dir,Expr::Var(y), list)
                     })
                     .collect();
-                return Expr::Var(y);
+                return match dir {
+                    Direction::Right => Expr::Bracket(ret),
+                    _ => Expr::Var(y),
+                    
+                }
             }
             (Expr::Bracket(x), Expr::Bracket(y)) => {
                 let mut ret = vec![];
-                for (e1, e2) in x.iter().zip(y.iter()) {
+                let iter = match dir {
+                    Direction::Right => y.iter().zip(x.iter()),
+                    _ => x.iter().zip(y.iter())
+                    
+                };
+                for (e1, e2) in iter {
                     {
-                        let v_stack = e1.clone().cartesian_product(e2.clone(), list);
+                        let v_stack = e1.clone().par_sum(dir,e2.clone(), list);
                         ret.push(v_stack);
                     }
                 }
