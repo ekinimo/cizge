@@ -22,6 +22,10 @@ layout-rs = "0.1.2"
 pest = "2.7.10"
 pest_derive = "2.6"
 lazy_static = "1.4.0"
+bit-matrix = "0.7.1"
+bitvector = "0.1.5"
+bitvec = "1.0.1"
+latex2mathml = "0.2.3"
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3.34"

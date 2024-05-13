@@ -1,14 +1,15 @@
 mod graph;
 mod graph_parser;
+mod my_svg_writer;
 mod utils;
-use graph::Graph;
+//use graph::Graph;
 use layout::{
     backends::svg::SVGWriter,
     core::{base::Orientation, geometry::Point, style::StyleAttr},
     std_shapes::shapes::{Arrow, Element, ShapeKind},
     topo::layout::VisualGraph,
 };
-use std::hash::Hash;
+use std::{hash::Hash, fmt::Display};
 use std::{
     cell::RefCell,
     collections::{hash_set, vec_deque, HashMap, HashSet, VecDeque},
@@ -16,12 +17,14 @@ use std::{
 };
 use wasm_bindgen::prelude::*;
 
+use crate::my_svg_writer::MySVGWriter;
+
 #[wasm_bindgen]
 extern "C" {
     fn alert(s: &str);
 
     #[wasm_bindgen(js_namespace = console)]
-    fn log(s: &str);
+    pub fn log(s: &str);
 }
 
 #[wasm_bindgen]
@@ -344,6 +347,7 @@ impl AdjList {
 
     pub fn get_svg(&self) -> String where
          //String : for <'a,'b> From<&'a &'b Vertex> ,
+        Vertex:Display,
     {
         let mut vg = VisualGraph::new(Orientation::LeftToRight);
         //self.get_edges()
@@ -357,20 +361,27 @@ impl AdjList {
             let handle = vg.add_node(elem);
             map.insert(x, handle);
         });
-        self.get_edges().iter().for_each(|edge| {
+        let binding = self.get_edges();
+        let edges = binding.into_iter().map(|edge| {
             let Edge(v1, v2) = edge;
-            let v1 = map.get(v1).unwrap();
-            let v2 = map.get(v2).unwrap();
+            let v11 = map.get(v1).unwrap();
+            let v22 = map.get(v2).unwrap();
             let arr = Arrow::simple("");
-            vg.add_edge(arr, *v1, *v2);
-        });
-        let mut svg = SVGWriter::new();
+            vg.add_edge(arr, *v11, *v22);
+            (v1,v2)
+        }).rev().collect();
+        let mut svg = MySVGWriter::new(edges);
         vg.do_it(false, false, false, &mut svg);
         svg.finalize()
     }
 }
 
 
+impl Display for Vertex{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
+    }
+}
 
 #[derive(Debug, Clone)]
 struct DFS<'a> {
