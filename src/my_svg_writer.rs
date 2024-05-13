@@ -225,19 +225,22 @@ impl <T:Display> RenderBackend for MySVGWriter<T> {
         let mut content = String::new();
         let cnt = 1 + text.lines().count();
         let size_y = (cnt * look.font_size) as f64;
+        let cnt = 1 + text.chars().count()-4;
+        let size_x = (cnt * look.font_size) as f64;
 
         let id = text.lines().fold(String::new(), |mut a,b| {a.push_str(b); a});
         self.vertex_ids.push(id);
         self.vertex_id_ctr +=1;
-
+        
          if text.starts_with("__") && text.ends_with("__"){
             match latex2mathml::latex_to_mathml(&text[2..text.len()-2], latex2mathml::DisplayStyle::Inline) {
                 Ok(ret) => {
                     //let ret = ret.replace("</", "</xhtml:").replace("<", "<xhtml:");
                     super::log(&format!("is this the problem? {ret:?}"));
+                    let ret = ret.replace("<math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"inline\">", "<math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"inline\" overflow=\"scale\">");
                     let ret = format!("{}{}{}{}{}",
-                       format!("<g><foreignObject x=\"{}\" y=\"{}\" width=100% height=100% class=\"{}\">",xy.x,xy.y - size_y / 2.,font_class),
-                               "   <div xmlns=\"http://www.w3.org/1999/xhtml\">",
+                       format!("<g><foreignObject x=\"{}\" y=\"{}\" width=100% height=100% class=\"{}\">",xy.x - size_x/20., xy.y - size_y / 2.,font_class),
+                               "   <div xmlns=\"http://www.w3.org/1999/xhtml\" class=\"math_eq\">",
                                ret,
                                "   </div>",
                                "</foreignObject></g>",

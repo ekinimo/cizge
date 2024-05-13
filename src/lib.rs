@@ -354,9 +354,11 @@ impl AdjList {
         let mut map = HashMap::new();
         let bind = self.get_vertices();
         bind.iter().for_each(|x| {
-            let shape = ShapeKind::Circle(x.into());
+            let shape = ShapeKind::Box(x.into());
             let look = StyleAttr::simple();
-            let size = Point::new(30., 30.);
+
+            let width :f64 = if x.0.starts_with("__") && x.0.ends_with("__"){ 4.0 } else{ 5.} *  f64::from(x.0.len() as u32);
+            let size = Point::new(35. + width, 35.);
             let elem = Element::create(shape, look, Orientation::LeftToRight, size);
             let handle = vg.add_node(elem);
             map.insert(x, handle);
