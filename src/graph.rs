@@ -1,23 +1,23 @@
-use std::borrow::BorrowMut;
-use std::collections::{HashMap, HashSet, VecDeque};
-use std::default;
+
+use std::collections::{HashMap, HashSet};
+
 use std::fmt::Debug;
 use std::hash::Hash;
-use std::ops::Range;
+
 use std::rc::Rc;
 use std::slice::{Iter, IterMut};
 
 use bit_matrix::row::BitSlice;
 use bit_matrix::BitMatrix;
-use bitvec::prelude::BitBox;
+
 use bitvector::BitVector;
-use layout::backends::svg::SVGWriter;
-use layout::core::{base::Orientation, geometry::Point, style::*};
 
-use layout::std_shapes::shapes::*;
-use layout::topo::layout::VisualGraph;
 
-use crate::my_svg_writer::MySVGWriter;
+
+
+
+
+
 
 //use layout::topo::placer::Placer;
 
@@ -615,7 +615,7 @@ impl  DirectedGraph<usize> for AdjecencyMatrix {
     fn get_predecessors(&self, vertex: &usize) -> Option<Box<[&usize]>> {
         if self.size() > *vertex as usize {
             //Some(self.1[*vertex as usize].collect())
-            Some(self.1.iter_row(*vertex).zip(self.2.iter()).filter(|(b,c)| *b).map(|(_,c) | c).collect())
+            Some(self.1.iter_row(*vertex).zip(self.2.iter()).filter(|(b,_c)| *b).map(|(_,c) | c).collect())
         } else {
             None
         }
@@ -625,7 +625,7 @@ impl  DirectedGraph<usize> for AdjecencyMatrix {
         //let b : Vec<_>= self.2.by_ref().collect();
         if self.size() > *vertex as usize {
             //Some(self.1[*vertex as usize].collect())
-            Some(self.0.iter_row(*vertex).zip(self.2.iter()).filter(|(b,c)| *b).map(|(_,c) | c).collect())
+            Some(self.0.iter_row(*vertex).zip(self.2.iter()).filter(|(b,_c)| *b).map(|(_,c) | c).collect())
         } else {
             None
         }

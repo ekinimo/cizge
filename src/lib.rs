@@ -5,7 +5,6 @@ mod utils;
 use graph::{AddOrRemoveEdge, AdjecencyList, GetVertex};
 //use graph::Graph;
 use layout::{
-    backends::svg::SVGWriter,
     core::{base::Orientation, color::Color, geometry::Point, style::StyleAttr},
     std_shapes::shapes::{Arrow, Element, ShapeKind},
     topo::layout::VisualGraph,
@@ -18,7 +17,7 @@ use std::{
 use std::{
     fmt::Display,
     hash::Hash,
-    ops::{Shl, Shr},
+    ops::{Shl},
 };
 use wasm_bindgen::prelude::*;
 
@@ -96,7 +95,7 @@ impl AdjList {
                 .cmp(&self.list.get(a).unwrap().len())
         });
         let mut vars = String::from("(\n");
-        let mut len = match vec.last() {
+        let len = match vec.last() {
             Some(n) => n.0.len(),
             _ => return "".to_string(),
         };
@@ -327,7 +326,7 @@ impl AdjList {
         Vertex: Display,
     {
         use crate::graph::DirectedGraph;
-        use graph;
+        
         let (adjl, names): (AdjecencyList, _) = self.into();
         let scc = adjl.SCC();
         //let mut col = 0xDEADCAB;

@@ -1,8 +1,8 @@
 //! SVG rendering backend that accepts draw calls and saves the output to a file.
 
-use std::{collections::{HashMap, VecDeque}, fmt::{format, Display}};
+use std::{collections::{HashMap, VecDeque}, fmt::{Display}};
 
-use layout::{core::{geometry::Point, format::{RenderBackend, ClipHandle}, style::StyleAttr, color::Color}, adt::dag::NodeHandle, topo::layout::VisualGraph};
+use layout::{core::{geometry::Point, format::{RenderBackend, ClipHandle}, style::StyleAttr, color::Color}};
 
 static SVG_HEADER: &str =
     r#"<?xml version="1.0" encoding="UTF-8" standalone="no"?>"#;
