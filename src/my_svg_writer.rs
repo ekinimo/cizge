@@ -257,7 +257,7 @@ impl <T:Display> RenderBackend for MySVGWriter<T> {
                     self.content.push_str(&ret);
                             return;
                 },
-                Err(_) => {()},
+                Err(_) => {},
             }
         };
         

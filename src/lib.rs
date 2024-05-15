@@ -102,7 +102,7 @@ impl AdjList {
         for i in &vec {
             vars.push_str("   ");
             vars.push_str(&i.0);
-            vars.push_str("\n");
+            vars.push('\n');
         }
         vars.push_str(") ");
         vars.push_str("   =>   ");
@@ -111,11 +111,11 @@ impl AdjList {
             match self.get_children(i) {
                 Some(r) => {
                     for _ in 0..len + 15 {
-                        vars.push_str(" ");
+                        vars.push(' ');
                     }
                     if !r.is_empty() {
-                        vars.push_str("(");
-                        r.into_iter().for_each(|x| {
+                        vars.push('(');
+                        r.iter().for_each(|x| {
                             vars.push_str("  ");
                             vars.push_str(&x.0);
                         });
@@ -126,9 +126,9 @@ impl AdjList {
             }
         }
         
-        vars.push_str("\n");
+        vars.push('\n');
         for _ in 0..len + 10 {
-            vars.push_str(" ");
+            vars.push(' ');
         }
         vars.push_str(")\n");
         vars
@@ -151,14 +151,14 @@ impl AdjList {
     pub fn is_adjacent(&self, vertex: &Vertex, vertex2: &Vertex) -> bool {
         self.list
             .get(vertex)
-            .is_some_and(|set| set.contains(&vertex2))
+            .is_some_and(|set| set.contains(vertex2))
     }
 
     pub fn get_predecessors(&self, vertex: &Vertex) -> Option<Box<[Vertex]>> {
         Some(
             self.list
                 .iter()
-                .filter(|(_, v)| v.contains(&vertex))
+                .filter(|(_, v)| v.contains(vertex))
                 .map(|x| x.0.clone())
                 .collect(),
         )
@@ -168,14 +168,14 @@ impl AdjList {
         Some(
             self.list
                 .iter()
-                .filter(|(_, v)| v.contains(&vertex))
+                .filter(|(_, v)| v.contains(vertex))
                 .map(|x| x.0)
                 .collect(),
         )
     }
 
     pub fn get_children(&self, vertex: &Vertex) -> Option<Box<[Vertex]>> {
-        Some(self.list.get(vertex)?.iter().map(|x| x.clone()).collect())
+        Some(self.list.get(vertex)?.iter().cloned().collect())
     }
 
     fn get_children_ref(&self, vertex: &Vertex) -> Option<Box<[&Vertex]>> {
@@ -203,7 +203,7 @@ impl AdjList {
 
     pub fn remove_edge_between(&mut self, v1: &Vertex, v2: &Vertex) {
         if self.list.contains_key(v1) {
-            self.list.get_mut(&v1).unwrap().remove(&v2);
+            self.list.get_mut(v1).unwrap().remove(v2);
         }
     }
 
@@ -219,7 +219,7 @@ impl AdjList {
     }
 
     fn get_vertices_ref(&self) -> Box<[&Vertex]> {
-        self.list.keys().map(|x| x).collect()
+        self.list.keys().collect()
     }
 
     fn get_edges_ref(&self) -> Box<[(&Vertex, &Vertex)]> {
@@ -368,7 +368,7 @@ impl AdjList {
         }
         let binding = self.get_edges();
         let edges = binding
-            .into_iter()
+            .iter()
             .map(|edge| {
                 let Edge(v1, v2) = edge;
                 let v11 = map.get(v1).unwrap();
@@ -676,7 +676,7 @@ fn hsv2rgb(h: f32, s: f32, v: f32) -> u32 {
     let r = (255.0 * r).round() as u32;
     let g = (255.0 * g).round() as u32;
     let b = (255.0 * b).round() as u32;
-    let ret = r.shl(16) | g.shl(8) | b;
     
-    return ret;
+    
+    r.shl(16) | g.shl(8) | b
 }

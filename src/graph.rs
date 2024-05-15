@@ -118,7 +118,7 @@ fn test_is_cyclic() {
     graph.add_edge_between(&j, &i);
 
     //dbg!(&graph);
-    assert_eq!(true, graph.is_cyclic());
+    assert!(graph.is_cyclic());
     dbg!(graph.SCC());
 }
 
@@ -146,9 +146,7 @@ where
 
         let mut no_entries: Vec<_> = oth
             .get_vertices()
-            .iter()
-            .cloned()
-            .filter(|x| oth.get_predecessor_count(x).unwrap() == 0)
+            .iter().filter(|&x| oth.get_predecessor_count(x).unwrap() == 0).cloned()
             .collect();
         let mut ret = vec![];
         while let Some(n) = no_entries.pop() {
@@ -156,14 +154,14 @@ where
             let children: Box<[_]> = oth
                 .get_children(&n)
                 .unwrap()
-                .into_iter()
+                .iter()
                 .cloned()
                 .cloned()
                 .collect();
 
-            children.into_iter().for_each(|child| {
-                oth.remove_edge_between(&n, &child);
-                if oth.get_predecessor_count(&child).unwrap() == 0 {
+            children.iter().for_each(|child| {
+                oth.remove_edge_between(&n, child);
+                if oth.get_predecessor_count(child).unwrap() == 0 {
                     no_entries.push(child.clone().clone())
                 }
             });
@@ -172,7 +170,7 @@ where
         if oth.get_edges().len() != 0 {
             None
         } else {
-            Some(ret.clone().into())
+            Some(ret.clone())
         }
     }
 
@@ -186,11 +184,9 @@ where
         loop {
             let no_entries: Vec<_> = oth
                 .get_vertices()
-                .iter()
-                .cloned()
-                .filter(|x| oth.get_predecessor_count(x).unwrap() == 0)
+                .iter().filter(|&x| oth.get_predecessor_count(x).unwrap() == 0).cloned()
                 .collect();
-            if no_entries.len() == 0 {
+            if no_entries.is_empty() {
                 break;
             }
             ret.push(no_entries.clone());
@@ -199,13 +195,13 @@ where
                 let children: Box<[_]> = oth
                     .get_children(&n)
                     .unwrap()
-                    .into_iter()
+                    .iter()
                     .cloned()
                     .cloned()
                     .collect();
 
-                children.into_iter().for_each(|child| {
-                    oth.remove_edge_between(&n, &child);
+                children.iter().for_each(|child| {
+                    oth.remove_edge_between(&n, child);
                 });
             }
         }
@@ -213,7 +209,7 @@ where
         if oth.get_edges().len() != 0 {
             None
         } else {
-            Some(ret.clone().into())
+            Some(ret.clone())
         }
     }
 
@@ -269,7 +265,7 @@ where
             stack_member: HashSet::default(),
         };
         let binding = self.get_vertices();
-        for child in binding.into_iter() {
+        for child in binding.iter() {
             if *params.discovery.get(child).unwrap_or(&-1) == -1 {
                 params = scc_util(self, child, params);
             }
@@ -353,8 +349,7 @@ fn scc_util<'a, Vertex: Debug + Hash + Eq + Clone, T: DirectedGraph<Vertex>>(
                     vac.insert(min);
                 }
             }
-        } else {
-        }
+        } 
     }
     let mut w = None;
     if low.get(vertex) == discovery.get(vertex) {
@@ -370,7 +365,7 @@ fn scc_util<'a, Vertex: Debug + Hash + Eq + Clone, T: DirectedGraph<Vertex>>(
             dbg!(&w);
             stack_member.remove(w.unwrap());
             tmp.push(w.unwrap().clone().clone());
-            if Some(vertex) == w || w == None {
+            if Some(vertex) == w || w.is_none() {
                 break;
             }
         }
@@ -421,7 +416,7 @@ impl DirectedGraph<usize> for AdjecencyList {
     }
 
     fn get_predecessors(&self, vertex: &usize) -> Option<Box<[&usize]>> {
-        if !(self.len() > *vertex) {
+        if self.len() <= *vertex {
             return None;
         }
         Some(
@@ -433,11 +428,11 @@ impl DirectedGraph<usize> for AdjecencyList {
     }
 
     fn get_children(& self, vertex: & usize) -> Option<Box<[& usize]>> {
-        Some(self.get(*vertex)?.iter().map(|x| x).collect())
+        Some(self.get(*vertex)?.iter().collect())
     }
 
     fn get_predecessor_count(&self, vertex: &usize) -> Option<usize> {
-        if !(self.len() > *vertex) {
+        if self.len() <= *vertex {
             return None;
         }
         Some(
@@ -600,20 +595,20 @@ impl <'a> std::ops::Index<(usize, usize)> for AdjecencyMatrix {
 impl  DirectedGraph<usize> for AdjecencyMatrix {
     fn contains_vertex(&self, vertex: &usize) -> bool {
         
-        self.size() as usize > *vertex
+        self.size() > *vertex
             
     }
 
     fn is_adjacent(&self, vertex: &usize, vertex2: &usize) -> bool {
-        if self.size() > *vertex as usize && self.size() > *vertex2 as usize {
-            self[(*vertex as usize, *vertex2 as usize)]
+        if self.size() > *vertex && self.size() > *vertex2 {
+            self[(*vertex, *vertex2)]
         } else {
             false
         }
     }
 
     fn get_predecessors(&self, vertex: &usize) -> Option<Box<[&usize]>> {
-        if self.size() > *vertex as usize {
+        if self.size() > *vertex {
             //Some(self.1[*vertex as usize].collect())
             Some(self.1.iter_row(*vertex).zip(self.2.iter()).filter(|(b,_c)| *b).map(|(_,c) | c).collect())
         } else {
@@ -623,7 +618,7 @@ impl  DirectedGraph<usize> for AdjecencyMatrix {
 
     fn get_children(& self, vertex: & usize) -> Option<Box<[& usize]>> {
         //let b : Vec<_>= self.2.by_ref().collect();
-        if self.size() > *vertex as usize {
+        if self.size() > *vertex {
             //Some(self.1[*vertex as usize].collect())
             Some(self.0.iter_row(*vertex).zip(self.2.iter()).filter(|(b,_c)| *b).map(|(_,c) | c).collect())
         } else {
@@ -634,7 +629,7 @@ impl  DirectedGraph<usize> for AdjecencyMatrix {
     }
 
     fn get_predecessor_count(&self, vertex: &usize) -> Option<usize> {
-        if self.size() > *vertex as usize {
+        if self.size() > *vertex {
             Some(
                 self.1.iter_row(*vertex)
                     
@@ -648,7 +643,7 @@ impl  DirectedGraph<usize> for AdjecencyMatrix {
     }
 
     fn get_children_count(&self, vertex: &usize) -> Option<usize> {
-        if self.size() > *vertex as usize {
+        if self.size() > *vertex {
             Some(
                 self.0.iter_row(*vertex)
                     
@@ -662,7 +657,7 @@ impl  DirectedGraph<usize> for AdjecencyMatrix {
     }
 
     fn get_vertices(&self) -> Box<[usize]> {
-        (0..self.0.size().0).map(|x| x as usize).collect()
+        (0..self.0.size().0).collect()
     }
 
     fn get_edges(&self) -> Box<[(usize, usize)]> {
@@ -670,7 +665,7 @@ impl  DirectedGraph<usize> for AdjecencyMatrix {
             .flat_map(|i| {
                 (0..self.size()).filter_map(move |j| if self[(i, j)] { Some((i, j)) } else { None })
             })
-            .map(|x| (x.0 as usize, x.1 as usize))
+            .map(|x| (x.0, x.1))
             .collect()
     }
 
@@ -704,7 +699,7 @@ impl From<AdjecencyMatrix> for AdjecencyList {
         value
             .get_edges()
             .iter()
-            .for_each(|(v1, v2)| ret.add_edge_between(&(*v1 as usize), &(*v2 as usize)));
+            .for_each(|(v1, v2)| ret.add_edge_between(&{ *v1 }, &{ *v2 }));
         ret
     }
 }
