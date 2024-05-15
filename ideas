@@ -27,3 +27,8 @@
    - name with property
    - string escape etc.
 - binop parser
+- parser atm does not care about precedency etc.
+- adopt an elm like model
+                                     
+   State --> View (javascript here) ----Message---> Update(&mut State, Message)
+   

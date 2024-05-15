@@ -3,10 +3,14 @@ use std::collections::{HashMap, HashSet, VecDeque};
 use std::default;
 use std::fmt::Debug;
 use std::hash::Hash;
+use std::ops::Range;
+use std::rc::Rc;
 use std::slice::{Iter, IterMut};
 
 use bit_matrix::row::BitSlice;
 use bit_matrix::BitMatrix;
+use bitvec::prelude::BitBox;
+use bitvector::BitVector;
 use layout::backends::svg::SVGWriter;
 use layout::core::{base::Orientation, geometry::Point, style::*};
 
@@ -112,11 +116,10 @@ fn test_is_cyclic() {
     graph.add_edge_between(&i, &f);
     graph.add_edge_between(&i, &g);
     graph.add_edge_between(&j, &i);
-    
+
     //dbg!(&graph);
     assert_eq!(true, graph.is_cyclic());
     dbg!(graph.SCC());
-
 }
 
 pub trait DirectedGraph<Vertex>
@@ -125,8 +128,8 @@ where
 {
     fn contains_vertex(&self, vertex: &Vertex) -> bool;
     fn is_adjacent(&self, vertex: &Vertex, vertex2: &Vertex) -> bool;
-    fn get_predecessors(&self, vertex: &Vertex) -> Option<Box<[Vertex]>>;
-    fn get_children(&self, vertex: &Vertex) -> Option<Box<[&Vertex]>>;
+    fn get_predecessors(&self, vertex: &Vertex) -> Option<Box<[&Vertex]>>;
+    fn get_children(& self, vertex: & Vertex) -> Option<Box<[& Vertex]>>;
     fn get_predecessor_count(&self, vertex: &Vertex) -> Option<usize>;
     fn get_children_count(&self, vertex: &Vertex) -> Option<usize>;
 
@@ -254,31 +257,30 @@ where
 
     fn SCC(&self) -> Vec<Vec<Vertex>>
     where
-        Self : Sized,
-        Vertex : Clone + Debug
+        Self: Sized,
+        Vertex: Clone + Debug,
     {
-        let mut params: SccParams<'_, Vertex> =  SccParams {
-             ret : vec![],
-             time : 0,
-             low : HashMap::default(),
-             discovery : HashMap::default(),
-             stack : vec![],
-             stack_member :HashSet::default(),
+        let mut params: SccParams<'_, Vertex> = SccParams {
+            ret: vec![],
+            time: 0,
+            low: HashMap::default(),
+            discovery: HashMap::default(),
+            stack: vec![],
+            stack_member: HashSet::default(),
         };
         let binding = self.get_vertices();
-        for child in binding.into_iter()  {
+        for child in binding.into_iter() {
             if *params.discovery.get(child).unwrap_or(&-1) == -1 {
                 params = scc_util(self, child, params);
             }
         }
         params.ret
     }
-
 }
 
-struct SccParams<'a, Vertex:Debug> {
+struct SccParams<'a, Vertex: Debug> {
     ret: Vec<Vec<Vertex>>,
-    time:  usize,
+    time: usize,
 
     low: HashMap<&'a Vertex, isize>,
     discovery: HashMap<&'a Vertex, isize>,
@@ -287,7 +289,7 @@ struct SccParams<'a, Vertex:Debug> {
     stack_member: HashSet<&'a Vertex>,
 }
 
-fn scc_util<'a, Vertex: Debug+ Hash + Eq+Clone, T: DirectedGraph<Vertex>>(
+fn scc_util<'a, Vertex: Debug + Hash + Eq + Clone, T: DirectedGraph<Vertex>>(
     graph: &'a T,
     vertex: &'a Vertex,
 
@@ -311,19 +313,18 @@ fn scc_util<'a, Vertex: Debug+ Hash + Eq+Clone, T: DirectedGraph<Vertex>>(
 
     for v in graph.get_children(vertex).unwrap().iter() {
         if discovery.get(v).unwrap_or(&-1) == &-1 {
- SccParams {
-                 ret,
-                 time,
-                 low,
-                 discovery,
-                 stack,
-                 stack_member,
+            SccParams {
+                ret,
+                time,
+                low,
+                discovery,
+                stack,
+                stack_member,
             } = scc_util(
                 graph,
                 v,
-                
                 SccParams {
-                     ret,
+                    ret,
                     time,
                     low,
                     discovery,
@@ -352,10 +353,11 @@ fn scc_util<'a, Vertex: Debug+ Hash + Eq+Clone, T: DirectedGraph<Vertex>>(
                     vac.insert(min);
                 }
             }
-        }else{}
+        } else {
+        }
     }
-    let mut w  = None;
-    if low.get(vertex) == discovery.get(vertex){
+    let mut w = None;
+    if low.get(vertex) == discovery.get(vertex) {
         let mut tmp = vec![];
         /*while w != Some(vertex){
             w = stack.pop();
@@ -363,21 +365,23 @@ fn scc_util<'a, Vertex: Debug+ Hash + Eq+Clone, T: DirectedGraph<Vertex>>(
             tmp.push(w.unwrap().clone().clone());
             stack_member.remove(w.unwrap());
         }*/
-        loop{
+        loop {
             w = stack.pop();
             dbg!(&w);
             stack_member.remove(w.unwrap());
             tmp.push(w.unwrap().clone().clone());
-            if Some(vertex) == w  || w == None {break}
+            if Some(vertex) == w || w == None {
+                break;
+            }
         }
-        ret.push( tmp);
+        ret.push(tmp);
         //insert ret here
     }
     SccParams {
         ret,
         time,
         low,
-      discovery,
+        discovery,
         stack,
         stack_member,
     }
@@ -405,7 +409,7 @@ pub trait AddOrRemoveEdge<Vertex> {
 }
 
 #[derive(Clone, Default, Debug)]
-pub struct AdjecencyList(Vec<HashSet<usize>>);
+pub struct AdjecencyList(Vec<(HashSet<usize>, usize)>);
 
 impl DirectedGraph<usize> for AdjecencyList {
     fn contains_vertex(&self, vertex: &usize) -> bool {
@@ -416,19 +420,19 @@ impl DirectedGraph<usize> for AdjecencyList {
         self.get(*vertex).is_some_and(|set| set.contains(vertex2))
     }
 
-    fn get_predecessors(&self, vertex: &usize) -> Option<Box<[usize]>> {
+    fn get_predecessors(&self, vertex: &usize) -> Option<Box<[&usize]>> {
         if !(self.len() > *vertex) {
             return None;
         }
         Some(
             self.iter()
-                .enumerate()
-                .filter_map(|(i, x)| if x.contains(vertex) { Some(i) } else { None })
+                //.enumerate()
+                .filter_map(|(x, i)| if x.contains(vertex) { Some(i) } else { None })
                 .collect(),
         )
     }
 
-    fn get_children(&self, vertex: &usize) -> Option<Box<[&usize]>> {
+    fn get_children(& self, vertex: & usize) -> Option<Box<[& usize]>> {
         Some(self.get(*vertex)?.iter().map(|x| x).collect())
     }
 
@@ -439,7 +443,7 @@ impl DirectedGraph<usize> for AdjecencyList {
         Some(
             self.iter()
                 .enumerate()
-                .filter_map(|(i, x)| if x.contains(vertex) { Some(i) } else { None })
+                .filter_map(|(i, x)| if x.0.contains(vertex) { Some(i) } else { None })
                 .count(),
         )
     }
@@ -455,7 +459,7 @@ impl DirectedGraph<usize> for AdjecencyList {
     fn get_edges(&self) -> Box<[(usize, usize)]> {
         self.iter()
             .enumerate()
-            .flat_map(|(p, c)| c.iter().map(move |x| (p, *x)))
+            .flat_map(|(p, c)| c.0.iter().map(move |x| (p, *x)))
             .collect()
     }
 
@@ -482,7 +486,7 @@ impl AddOrRemoveEdge<usize> for AdjecencyList {
             );
             return;
         }
-        self.0[*v1].insert(*v2);
+        self.0[*v1].0.insert(*v2);
     }
 
     fn remove_edge_between(&mut self, v1: &usize, v2: &usize) {
@@ -490,7 +494,7 @@ impl AddOrRemoveEdge<usize> for AdjecencyList {
             eprint!("Adjecency list doesnt supprt removing edges between nonexistent vertices");
             return;
         }
-        self.0[*v1].remove(v2);
+        self.0[*v1].0.remove(v2);
     }
 }
 
@@ -498,14 +502,16 @@ impl GetVertex<usize> for AdjecencyMatrix {
     fn get_new_vertex(&mut self) -> usize {
         let s = self.size();
         let mut ret = BitMatrix::new(s + 1, s + 1);
+        let mut ret2 = BitMatrix::new(s + 1, s + 1);
 
         (0..s)
             .flat_map(|i| (0..s).map(move |j| (i, j)))
             .for_each(|(i, j)| {
                 let v = &self[(i, j)];
-                ret.set(i, j, *v)
+                ret.set(i, j, *v);
+                ret2.set(j, i, *v);
             });
-        *self = AdjecencyMatrix(ret, self.1.clone());
+        *self = AdjecencyMatrix(ret, ret2,self.2.clone());
         s + 1
     }
 }
@@ -517,6 +523,7 @@ impl AddOrRemoveEdge<usize> for AdjecencyMatrix {
             return;
         }
         self.0.set(*v1, *v2, true);
+        self.1.set(*v2, *v1, true);
     }
 
     fn remove_edge_between(&mut self, v1: &usize, v2: &usize) {
@@ -525,12 +532,13 @@ impl AddOrRemoveEdge<usize> for AdjecencyMatrix {
             return;
         }
         self.0.set(*v1, *v2, false);
+        self.1.set(*v2, *v1, false);
     }
 }
 
 impl AdjecencyList {
     pub fn push(&mut self) -> usize {
-        self.0.push(HashSet::default());
+        self.0.push((HashSet::default(), self.len()));
         self.0.len()
     }
 
@@ -539,32 +547,49 @@ impl AdjecencyList {
     }
 
     pub fn get(&self, index: usize) -> Option<&HashSet<usize>> {
-        self.0.get(index)
+        self.0.get(index).map(|x| &x.0)
     }
 
-    pub fn iter(&self) -> Iter<'_, HashSet<usize>> {
+    pub fn iter(&self) -> Iter<'_, (HashSet<usize>, usize)> {
         self.0.iter()
     }
 
-    pub fn iter_mut(&mut self) -> IterMut<'_, HashSet<usize>> {
+    pub fn iter_mut(&mut self) -> IterMut<'_, (HashSet<usize>, usize)> {
         self.0.iter_mut()
     }
 }
-pub struct AdjecencyMatrix(BitMatrix, Box<[usize]>);
-impl AdjecencyMatrix {
+pub struct AdjecencyMatrix(BitMatrix, BitMatrix,Rc<[usize]>);
+impl  AdjecencyMatrix {
     fn size(&self) -> usize {
         self.0.size().0
     }
+    fn new(n: usize) -> Self {
+        AdjecencyMatrix(BitMatrix::new(n, n), BitMatrix::new(n, n),(0..n).collect())
+    }
 }
 
-impl std::ops::Index<usize> for AdjecencyMatrix {
+#[test]
+fn test_adj_mat() {
+    let mut mat = AdjecencyMatrix::new(5);
+    mat.add_edge_between(&0, &1);
+    mat.add_edge_between(&0, &2);
+    mat.add_edge_between(&0, &3);
+    mat.add_edge_between(&0, &4);
+    mat.add_edge_between(&2, &1);
+    mat.add_edge_between(&3, &1);
+    mat.add_edge_between(&4, &1);
+    dbg!(mat.get_children(&0));
+    dbg!(mat.get_predecessors(&1));
+}
+
+impl <'a> std::ops::Index<usize> for AdjecencyMatrix {
     type Output = BitSlice;
 
     fn index(&self, row: usize) -> &bit_matrix::row::BitSlice {
         &self.0[row]
     }
 }
-impl std::ops::Index<(usize, usize)> for AdjecencyMatrix {
+impl <'a> std::ops::Index<(usize, usize)> for AdjecencyMatrix {
     type Output = bool;
 
     fn index(&self, row: (usize, usize)) -> &bool {
@@ -572,49 +597,48 @@ impl std::ops::Index<(usize, usize)> for AdjecencyMatrix {
     }
 }
 
-impl DirectedGraph<usize> for AdjecencyMatrix {
+impl  DirectedGraph<usize> for AdjecencyMatrix {
     fn contains_vertex(&self, vertex: &usize) -> bool {
-        self.size() > *vertex
+        
+        self.size() as usize > *vertex
+            
     }
 
     fn is_adjacent(&self, vertex: &usize, vertex2: &usize) -> bool {
-        if self.size() > *vertex && self.size() > *vertex2 {
-            self[(*vertex, *vertex2)]
+        if self.size() > *vertex as usize && self.size() > *vertex2 as usize {
+            self[(*vertex as usize, *vertex2 as usize)]
         } else {
             false
         }
     }
 
-    fn get_predecessors(&self, vertex: &usize) -> Option<Box<[usize]>> {
-        if self.size() > *vertex {
-            let a: Box<[usize]> = (0..self.size())
-                .map(|i| (i, self[(*vertex, 0)]))
-                .filter_map(|x| if x.1 { Some(x.0) } else { None })
-                .collect();
-            Some(a)
+    fn get_predecessors(&self, vertex: &usize) -> Option<Box<[&usize]>> {
+        if self.size() > *vertex as usize {
+            //Some(self.1[*vertex as usize].collect())
+            Some(self.1.iter_row(*vertex).zip(self.2.iter()).filter(|(b,c)| *b).map(|(_,c) | c).collect())
         } else {
             None
         }
     }
 
-    fn get_children(&self, vertex: &usize) -> Option<Box<[&usize]>> {
-        if self.size() > *vertex {
-            let a: Box<[&usize]> = self[*vertex]
-                .iter_bits(self.size())
-                .zip(self.1.iter())
-                .filter_map(|x| if x.0 { Some(x.1) } else { None })
-                .collect();
-            Some(a)
+    fn get_children(& self, vertex: & usize) -> Option<Box<[& usize]>> {
+        //let b : Vec<_>= self.2.by_ref().collect();
+        if self.size() > *vertex as usize {
+            //Some(self.1[*vertex as usize].collect())
+            Some(self.0.iter_row(*vertex).zip(self.2.iter()).filter(|(b,c)| *b).map(|(_,c) | c).collect())
         } else {
             None
         }
+        
+        
     }
 
     fn get_predecessor_count(&self, vertex: &usize) -> Option<usize> {
-        if self.size() > *vertex {
+        if self.size() > *vertex as usize {
             Some(
-                (0..self.size())
-                    .map(|i| (i, self[(*vertex, 0)]))
+                self.1.iter_row(*vertex)
+                    
+                    .enumerate()
                     .filter(|(_, b)| *b)
                     .count(),
             )
@@ -624,10 +648,10 @@ impl DirectedGraph<usize> for AdjecencyMatrix {
     }
 
     fn get_children_count(&self, vertex: &usize) -> Option<usize> {
-        if self.size() > *vertex {
+        if self.size() > *vertex as usize {
             Some(
-                self[*vertex]
-                    .iter_bits(self.size())
+                self.0.iter_row(*vertex)
+                    
                     .enumerate()
                     .filter(|(_, b)| *b)
                     .count(),
@@ -638,7 +662,7 @@ impl DirectedGraph<usize> for AdjecencyMatrix {
     }
 
     fn get_vertices(&self) -> Box<[usize]> {
-        (0..self.size()).collect()
+        (0..self.0.size().0).map(|x| x as usize).collect()
     }
 
     fn get_edges(&self) -> Box<[(usize, usize)]> {
@@ -646,6 +670,7 @@ impl DirectedGraph<usize> for AdjecencyMatrix {
             .flat_map(|i| {
                 (0..self.size()).filter_map(move |j| if self[(i, j)] { Some((i, j)) } else { None })
             })
+            .map(|x| (x.0 as usize, x.1 as usize))
             .collect()
     }
 
@@ -657,6 +682,7 @@ impl DirectedGraph<usize> for AdjecencyMatrix {
 impl From<AdjecencyList> for AdjecencyMatrix {
     fn from(value: AdjecencyList) -> Self {
         let mut ret = AdjecencyMatrix(
+            BitMatrix::new(value.len(), value.len()),
             BitMatrix::new(value.len(), value.len()),
             (0..value.len()).collect(),
         );
@@ -678,7 +704,14 @@ impl From<AdjecencyMatrix> for AdjecencyList {
         value
             .get_edges()
             .iter()
-            .for_each(|(v1, v2)| ret.add_edge_between(v1, v2));
+            .for_each(|(v1, v2)| ret.add_edge_between(&(*v1 as usize), &(*v2 as usize)));
         ret
     }
 }
+
+
+struct MyBitMatrix{
+    size:usize,
+    elems: BitVector
+}
+
