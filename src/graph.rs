@@ -17,44 +17,6 @@ use crate::my_svg_writer::MySVGWriter;
 
 //use layout::topo::placer::Placer;
 
-#[test]
-fn test_simple_graph() {
-    let s = simple_graph();
-    dbg!(s.split("\n").collect::<Box<[_]>>());
-}
-
-pub fn simple_graph() -> String {
-    let mut vg = VisualGraph::new(Orientation::LeftToRight);
-
-    // Define the node styles:
-    let sp0 = ShapeKind::new_box("one");
-    let sp1 = ShapeKind::new_box("$two_3$");
-    let sp2 = ShapeKind::new_circle("three");
-    let look0 = StyleAttr::simple();
-    let look1 = StyleAttr::simple();
-    let sz = Point::new(30., 30.);
-    // Create the nodes:
-
-    let node0 = Element::create(sp0, look0, Orientation::LeftToRight, sz);
-    let node1 = Element::create(sp1, look1.clone(), Orientation::LeftToRight, sz);
-    let node2 = Element::create(sp2, look1, Orientation::LeftToRight, sz);
-
-    // Add the nodes to the graph, and save a handle to each node.
-    let handle0 = vg.add_node(node0);
-    let handle1 = vg.add_node(node1);
-    let handle2 = vg.add_node(node2);
-
-    // Add an edge between the nodes.
-    let arrow = Arrow::simple("");
-    vg.add_edge(arrow.clone(), handle0, handle1);
-    vg.add_edge(arrow, handle2, handle1);
-
-    // Render the nodes to some rendering backend.
-    let mut svg = MySVGWriter::new(vec![("one","two"),("three","two")]);
-    vg.do_it(false, false, false, &mut svg);
-    svg.finalize()
-}
-
 /*
 #[derive(Clone,Debug)]
 pub struct DirectedGraphDFS<'a, T: DirectedGraph<Vertex>+Debug, Vertex: Eq + Hash+Debug> {

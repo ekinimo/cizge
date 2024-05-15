@@ -1,6 +1,6 @@
 //! SVG rendering backend that accepts draw calls and saves the output to a file.
 
-use std::{collections::HashMap, fmt::{format, Display}};
+use std::{collections::{HashMap, VecDeque}, fmt::{format, Display}};
 
 use layout::{core::{geometry::Point, format::{RenderBackend, ClipHandle}, style::StyleAttr, color::Color}, adt::dag::NodeHandle, topo::layout::VisualGraph};
 
@@ -59,13 +59,13 @@ pub struct MySVGWriter<Vertex:Display> {
     clip_regions: Vec<String>,
     vertex_ids : Vec<String>,
     vertex_id_ctr: usize,
-    edges:Vec<(Vertex,Vertex)>,
+    edges:VecDeque<(Vertex,Vertex)>,
     points:Vec<(Point,Point)>
     //edges :Vec<(Vec<NodeHandle>)>
 }
 
 impl <Vertex:Display> MySVGWriter<Vertex> {
-    pub fn new(edges:Vec<(Vertex,Vertex)>) -> MySVGWriter<Vertex> {
+    pub fn new(edges:VecDeque<(Vertex,Vertex)>) -> MySVGWriter<Vertex> {
         MySVGWriter {
             content: String::new(),
             view_size: Point::zero(),
@@ -82,7 +82,7 @@ impl <Vertex:Display> MySVGWriter<Vertex> {
 
 impl <X:Display> Default for MySVGWriter<X> {
     fn default() -> Self {
-        Self::new(vec![])
+        Self::new(VecDeque::default())
     }
 }
 
@@ -343,7 +343,7 @@ impl <T:Display> RenderBackend for MySVGWriter<T> {
 
         let stroke_width = look.line_width;
         let stroke_color = look.line_color;
-        let (startid,endid) = self.edges.pop().unwrap();
+        let (startid,endid) = self.edges.pop_front().unwrap();
         let line = format!(
             
             "<g id = edge--{}--{}>  <path id=\"arrow{}\" d=\"{}\" \

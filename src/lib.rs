@@ -38,12 +38,6 @@ pub fn greet() {
 }
 
 #[wasm_bindgen]
-pub fn wuhu() -> String {
-    //alert("Hello, gracalc!");
-    graph::simple_graph()
-}
-
-#[wasm_bindgen]
 #[derive(Hash, Eq, PartialEq, Clone, Default, Debug)]
 pub struct Vertex(String);
 
@@ -384,7 +378,7 @@ impl AdjList {
                 vg.add_edge(arr, *v11, *v22);
                 (v1, v2)
             })
-            .rev()
+            //.rev()
             .collect();
         let mut svg = MySVGWriter::new(edges);
         vg.do_it(false, false, false, &mut svg);

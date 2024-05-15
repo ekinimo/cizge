@@ -38,6 +38,7 @@ let vertexClicked=(graph,vertex)=>{
     self.last_click =  vertex;
 };
 let edgeClicked=(graph,vertex1,vertex2)=>{
+    console.log("edge " + vertex1 +  "--" +vertex2 + "clicked");
     graph.remove_edge_between(Vertex.new(vertex1),Vertex.new(vertex2));
     //const input_text = document.getElementById("text_area");
     const gr = graph.getAsString();
