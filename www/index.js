@@ -22,6 +22,7 @@ function drawGraph(ret){
     });
 }
 
+const input_text = document.getElementById("text_area");
 
 let vertexClicked=(graph,vertex)=>{
     console.log(self);
@@ -29,7 +30,8 @@ let vertexClicked=(graph,vertex)=>{
         self.count +=1;
     else{ self.count = 1;}
     if (self.last_click && self.count && self.count == 2){
-        //graph.add_edge(Vertex.new(self.last_click),Vertex.new(vertex));
+        graph.add_edge(Vertex.new(self.last_click),Vertex.new(vertex));
+        input_text.value = graph.getAsString();
         drawGraph(graph);
         self.count=0;
     }
@@ -37,6 +39,10 @@ let vertexClicked=(graph,vertex)=>{
 };
 let edgeClicked=(graph,vertex1,vertex2)=>{
     graph.remove_edge_between(Vertex.new(vertex1),Vertex.new(vertex2));
+    //const input_text = document.getElementById("text_area");
+    const gr = graph.getAsString();
+    input_text.value = gr;
+    console.log(gr);
     drawGraph(graph);
 };
 
@@ -46,7 +52,7 @@ errElem.setAttribute("cols", "80");
 errElem.setAttribute("rows", "30");
 errElem.setAttribute("readonly", "true");
 
-const input_text = document.getElementById("text_area");
+
 input_text.addEventListener("input", (event) => {
     try{
         let ret = AdjList.try_parse(event.target.value);
