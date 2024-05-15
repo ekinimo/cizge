@@ -60,6 +60,7 @@ pub struct MySVGWriter<Vertex:Display> {
     vertex_ids : Vec<String>,
     vertex_id_ctr: usize,
     edges:Vec<(Vertex,Vertex)>,
+    points:Vec<(Point,Point)>
     //edges :Vec<(Vec<NodeHandle>)>
 }
 
@@ -74,6 +75,7 @@ impl <Vertex:Display> MySVGWriter<Vertex> {
             vertex_ids: Vec::new(),
             vertex_id_ctr: 0,
             edges ,
+            points : vec![]
         }
     }
 }
@@ -160,7 +162,7 @@ impl <T:Display> RenderBackend for MySVGWriter<T> {
         look: &StyleAttr,
         clip: Option<ClipHandle>,
     ) {
-        //self.points.push((xy,size));
+        self.points.push((xy,size));
 
         self.grow_window(xy, size);
 
@@ -193,7 +195,7 @@ impl <T:Display> RenderBackend for MySVGWriter<T> {
 
     fn draw_circle(&mut self, xy: Point, size: Point, look: &StyleAttr) {
         dbg!("circle");
-        //self.points.push((xy,size));
+        self.points.push((xy,size));
         self.grow_window(xy, size);
         
         let fill_color = look.fill_color.unwrap_or_else(Color::transparent);
@@ -225,8 +227,8 @@ impl <T:Display> RenderBackend for MySVGWriter<T> {
         let mut content = String::new();
         let cnt = 1 + text.lines().count();
         let size_y = (cnt * look.font_size) as f64;
-        let cnt = 1 + text.chars().count()-4;
-        let size_x = (cnt * look.font_size) as f64;
+        //let cnt = 1 + text.chars().count()-4;
+        //let size_x = (cnt * look.font_size) as f64;
 
         let id = text.lines().fold(String::new(), |mut a,b| {a.push_str(b); a});
         self.vertex_ids.push(id);
@@ -237,10 +239,16 @@ impl <T:Display> RenderBackend for MySVGWriter<T> {
                 Ok(ret) => {
                     //let ret = ret.replace("</", "</xhtml:").replace("<", "<xhtml:");
                     super::log(&format!("is this the problem? {ret:?}"));
-                    let ret = ret.replace("<math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"inline\">", "<math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"inline\" overflow=\"scale\">");
+                    let (center,size) = self.points.pop().unwrap();
+                    let Point { x, y } = center;
+                    let Point { x:sx, y:sy } = size;
+                    let oy = xy.y - size_y/2.0;
+                
+                    let math_elem = format!("<math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"inline\"  x=\"{}\" y=\"{}\" width={sx} height={sy} overflow=\"scale\">",x,oy);
+                    let ret = ret.replace("<math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"inline\">", &math_elem);
                     let ret = format!("{}{}{}{}{}",
-                       format!("<g><foreignObject x=\"{}\" y=\"{}\" width=100% height=100% class=\"{}\">",xy.x - size_x/20., xy.y - size_y / 2.,font_class),
-                               "   <div xmlns=\"http://www.w3.org/1999/xhtml\" class=\"math_eq\">",
+                                      format!("<g x=\"{x}\" y=\"{y}\" width={sx} height={sy} ><foreignObject x=\"{x}\" y=\"{oy}\" width={sx} height={sy} overflow=\"auto\">"),//class=\"{}\">",font_class),
+                                      format!("   <div xmlns=\"http://www.w3.org/1999/xhtml\" class=\"math_eq\" x=\"{x}\" y=\"{y}\" width=\"{sx}\" height={sy}  >"),
                                ret,
                                "   </div>",
                                "</foreignObject></g>",

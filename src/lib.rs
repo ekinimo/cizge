@@ -2,14 +2,15 @@ mod graph;
 mod graph_parser;
 mod my_svg_writer;
 mod utils;
+use graph::{AdjecencyList, GetVertex, AddOrRemoveEdge};
 //use graph::Graph;
 use layout::{
     backends::svg::SVGWriter,
-    core::{base::Orientation, geometry::Point, style::StyleAttr},
+    core::{base::Orientation, geometry::Point, style::StyleAttr, color::Color},
     std_shapes::shapes::{Arrow, Element, ShapeKind},
     topo::layout::VisualGraph,
 };
-use std::{hash::Hash, fmt::Display};
+use std::{hash::Hash, fmt::Display, ops::{Shl, Shr}};
 use std::{
     cell::RefCell,
     collections::{hash_set, vec_deque, HashMap, HashSet, VecDeque},
@@ -345,24 +346,51 @@ impl AdjList {
         ret.into_iter().collect()
     }
 
+
+
     pub fn get_svg(&self) -> String where
          //String : for <'a,'b> From<&'a &'b Vertex> ,
         Vertex:Display,
     {
+        use graph ;
+        use crate::graph::DirectedGraph;
+        let adjl : AdjecencyList = self.into();
+        let scc = adjl.SCC();
+        //let mut col = 0xDEADCAB;
+        //let inc = 0x0A0A0A;
+        let mut style_map = HashMap::new();
+        log(&format!("{:?}",&scc));
+        let n = (scc.len()) as f32;
+        let n = 340.0/n; // can go upto max 360 but then colors get super similar
+        let mut start = 0.0;
+        
+        for group in scc{
+         
+            for elem in group{
+                let col = hsv2rgb(start, 0.3, 0.95);
+                log(&format!("{start} => {col}"));
+                style_map.insert(self.get_vertex(elem).unwrap(), col);
+            }
+            
+            start += n;
+        }
+
         let mut vg = VisualGraph::new(Orientation::LeftToRight);
         //self.get_edges()
         let mut map = HashMap::new();
         let bind = self.get_vertices();
-        bind.iter().for_each(|x| {
+        for x in bind.iter() {
+            
             let shape = ShapeKind::Box(x.into());
-            let look = StyleAttr::simple();
+            let col = style_map.get(x).unwrap();
 
-            let width :f64 = if x.0.starts_with("__") && x.0.ends_with("__"){ 4.0 } else{ 5.} *  f64::from(x.0.len() as u32);
+            let width :f64 = if x.0.starts_with("__") && x.0.ends_with("__"){ 0.75*5.0 *  f64::from((x.0.len()-4) as u32)} else{ 5. *  f64::from(x.0.len() as u32) } ;
             let size = Point::new(35. + width, 35.);
+            let look = StyleAttr::new(Color::new(0xffffff), 1, Some(Color::new(*col)),  5,10);
             let elem = Element::create(shape, look, Orientation::LeftToRight, size);
             let handle = vg.add_node(elem);
             map.insert(x, handle);
-        });
+        };
         let binding = self.get_edges();
         let edges = binding.into_iter().map(|edge| {
             let Edge(v1, v2) = edge;
@@ -376,8 +404,24 @@ impl AdjList {
         vg.do_it(false, false, false, &mut svg);
         svg.finalize()
     }
+
+
 }
 
+impl From<&AdjList> for graph::AdjecencyList{
+    fn from(value: &AdjList) -> Self {
+        let mut  ret = AdjecencyList::default();
+        value.adj_list.keys().for_each(|me| { let a = ret.get_new_vertex(); });
+        value.adj_list.iter().for_each(|(k,v)| {
+            v.iter().for_each(|v| {
+                ret.add_edge_between(&k, v);
+            });
+        });
+
+        ret
+
+    }
+}
 
 impl Display for Vertex{
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -632,3 +676,29 @@ where
 
 }
 */
+
+fn hsv2rgb(h:f32,s:f32,v:f32)->u32{
+
+    let c = s*v;
+    let x = c*(1.0 - (((h   /60.0) % 2.0) -1.0).abs());
+    let m = v-c;
+
+    let (r,g,b) = match h {
+        _ if h < 60. =>  (c+m,x+m,m),
+        _ if h < 120. => (x+m,c+m,m),
+        _ if h < 180. => (m,c+m,x+m),
+        _ if h < 240. => (m,x+m,c+m),
+        _ if h < 300. => (x+m,m,c+m),
+        _   => (c+m,m,x+m),
+        
+    };
+
+
+    let r = (255.0 *r ).round() as   u32;
+    let g = (255.0 *g ).round() as  u32;
+    let b = (255.0 *b ).round() as u32;
+    let ret = r.shl(16) | g.shl(8) | b;
+    //log()rust
+    log(&format!(" r = {r:x}  g = {g:x}  b = {b:x}   ==> {ret:x}"));
+    return ret
+}
