@@ -31,6 +31,13 @@ extern "C" {
     pub fn log(s: &str);
 }
 
+#[wasm_bindgen(module = "/js_funcs.js")]
+extern "C" {
+    fn getElemHeight(s:&str) -> usize;
+    fn getElemWidth(s:&str) -> usize;
+}
+
+
 #[wasm_bindgen]
 pub fn greet() {
     alert("Hello, gracalc!");
@@ -352,19 +359,47 @@ impl AdjList {
         let mut map = HashMap::new();
         let bind = self.get_vertices();
         for x in bind.iter() {
-            let shape = ShapeKind::Box(x.into());
             let col = style_map.get(x).unwrap();
-
-            let width: f64 = if x.0.starts_with("__") && x.0.ends_with("__") {
-                0.75 * 5.0 * f64::from((x.0.len() - 4) as u32)
-            } else {
-                5. * f64::from(x.0.len() as u32)
-            };
-            let size = Point::new(35. + width, 35.);
             let look = StyleAttr::new(Color::new(0xffffff), 1, Some(Color::new(*col)), 5, 10);
-            let elem = Element::create(shape, look, Orientation::LeftToRight, size);
-            let handle = vg.add_node(elem);
-            map.insert(x, handle);
+            if x.0.starts_with("__") && x.0.ends_with("__") {
+                let html = match latex2mathml::latex_to_mathml(&x.0[2..x.0.len()-2],latex2mathml::DisplayStyle::Inline).map_err(|x|x.to_string()) {
+                    Ok(s) => {s},
+                    Err(s) => {format!("<div>{s}</div>")},
+                };
+                let math_elem = format!("<math xmlns=\"http://www.w3.org/1998/Math/MathML\" id=math display=\"inline\"  overflow=\"scale\">");
+                let html = html.replace("<math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"inline\">", &math_elem);
+                let html = format!("{}{}{}{}{}",
+                                  format!("<g ><foreignObject id=foreign>"),
+                                  format!("   <div xmlns=\"http://www.w3.org/1999/xhtml\"  >"),
+                                  html,
+                                  "   </div>",
+                                  "</foreignObject></g>",
+                );
+
+                let shape = ShapeKind::Box(x.into());
+                let h =getElemHeight(&html);
+                let w =getElemWidth(&html);
+
+                let size = Point::new(w as f64 +15.0, h as f64+15.);
+                
+                let elem = Element::create(shape, look, Orientation::LeftToRight, size);
+                let handle = vg.add_node(elem);
+                map.insert(x, handle);
+            }else{
+                
+                let shape = ShapeKind::Box(x.into());
+
+                let width: f64 = 
+                    5. * f64::from(x.0.len() as u32)
+                ;
+                let size = Point::new(35. + width, 35.);
+                
+                let elem = Element::create(shape, look, Orientation::LeftToRight, size);
+                let handle = vg.add_node(elem);
+                map.insert(x, handle);
+            }
+
+            
         }
         let binding = self.get_edges();
         let edges = binding

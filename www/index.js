@@ -1,5 +1,7 @@
 import {AdjList,Vertex} from "gracalc";
 
+
+
 function drawGraph(ret){
     let elem = document.getElementById("img");
     console.log(elem);

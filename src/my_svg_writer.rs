@@ -242,9 +242,10 @@ impl <T:Display> RenderBackend for MySVGWriter<T> {
                     let (center,size) = self.points.pop().unwrap();
                     let Point { x, y } = center;
                     let Point { x:sx, y:sy } = size;
-                    let oy = xy.y - size_y/2.0;
+                    let ox = x + sx/2.0;
+                    let oy = xy.y - sy/4.;
                 
-                    let math_elem = format!("<math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"inline\"  x=\"{}\" y=\"{}\" width={sx} height={sy} overflow=\"scale\">",x,oy);
+                    let math_elem = format!("<math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"inline\"  x=\"{}\" y=\"{}\" width={sx} height={sy} overflow=\"scale\">",ox,oy);
                     let ret = ret.replace("<math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"inline\">", &math_elem);
                     let ret = format!("{}{}{}{}{}",
                                       format!("<g x=\"{x}\" y=\"{y}\" width={sx} height={sy} ><foreignObject x=\"{x}\" y=\"{oy}\" width={sx} height={sy} overflow=\"auto\">"),//class=\"{}\">",font_class),
