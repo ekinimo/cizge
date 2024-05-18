@@ -1,18 +1,17 @@
 mod graph;
 mod graph_parser;
-mod my_svg_writer;
 mod utils;
 use graph::{AddOrRemoveEdge, AdjecencyList, GetVertex};
 //use graph::Graph;
 use layout::{
     core::{base::Orientation, color::Color, geometry::Point, style::StyleAttr},
-    std_shapes::shapes::{Arrow, Element, ShapeKind},
-    topo::layout::VisualGraph,
+    std_shapes::shapes::{Arrow, Element, ShapeKind, ShapeInner},
+    topo::layout::VisualGraph, backends::svg::SVGWriter,
 };
 use std::{
     cell::RefCell,
     collections::{hash_set, vec_deque, HashMap, HashSet, VecDeque},
-    rc::Rc,
+    rc::Rc, fmt::format,
 };
 use std::{
     fmt::Display,
@@ -21,7 +20,6 @@ use std::{
 };
 use wasm_bindgen::prelude::*;
 
-use crate::my_svg_writer::MySVGWriter;
 
 #[wasm_bindgen]
 extern "C" {
@@ -367,54 +365,58 @@ impl AdjList {
                     Err(s) => {format!("<div>{s}</div>")},
                 };
                 let math_elem = format!("<math xmlns=\"http://www.w3.org/1998/Math/MathML\" id=math display=\"inline\"  overflow=\"scale\">");
-                let html = html.replace("<math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"inline\">", &math_elem);
+                let orig_html = html.replace("<math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"inline\">", &math_elem);
                 let html = format!("{}{}{}{}{}",
                                   format!("<g ><foreignObject id=foreign>"),
                                   format!("   <div xmlns=\"http://www.w3.org/1999/xhtml\"  >"),
-                                  html,
+                                  orig_html,
                                   "   </div>",
                                   "</foreignObject></g>",
                 );
 
-                let shape = ShapeKind::Box(x.into());
+                //let shape = ShapeKind::Box(x.into());
                 let h =getElemHeight(&html);
                 let w =getElemWidth(&html);
 
                 let size = Point::new(w as f64 +15.0, h as f64+15.);
-                
-                let elem = Element::create(shape, look, Orientation::LeftToRight, size);
+                let html = format!("{}{}{}",
+                                   format!("   <div xmlns=\"http://www.w3.org/1999/xhtml\"  >"),
+                                   orig_html,
+                                   "   </div>",
+                                   
+                );
+                let props = format!(" id=\"node-{}\"",x.0);
+
+                let shape = ShapeKind::Box(ShapeInner::ForeignElement(html, Point::new(w as f64, h as f64)));
+                let elem= Element::create_with_properties(shape, look, Orientation::LeftToRight, size, props);
+                // = Element::create(shape, look, Orientation::LeftToRight, size);
                 let handle = vg.add_node(elem);
                 map.insert(x, handle);
             }else{
                 
-                let shape = ShapeKind::Box(x.into());
-
+                let shape = ShapeKind::Box(ShapeInner::Text(x.0.clone()));
+                
                 let width: f64 = 
                     5. * f64::from(x.0.len() as u32)
                 ;
                 let size = Point::new(35. + width, 35.);
+                let props = format!(" id=\"node-{}\"",x.0);
                 
-                let elem = Element::create(shape, look, Orientation::LeftToRight, size);
+                let elem = Element::create_with_properties(shape, look, Orientation::LeftToRight, size,props);
                 let handle = vg.add_node(elem);
                 map.insert(x, handle);
             }
 
             
         }
-        let binding = self.get_edges();
-        let edges = binding
-            .iter()
-            .map(|edge| {
-                let Edge(v1, v2) = edge;
-                let v11 = map.get(v1).unwrap();
-                let v22 = map.get(v2).unwrap();
-                let arr = Arrow::simple("");
-                vg.add_edge(arr, *v11, *v22);
-                (v1, v2)
-            })
-            //.rev()
-            .collect();
-        let mut svg = MySVGWriter::new(edges);
+        for Edge(v1, v2)  in self.get_edges().iter(){
+            let props = format!(" id=\"edge-{}-{}\"",v1.0,v2.0);
+            let v1 = map.get(v1).unwrap();
+            let v2 = map.get(v2).unwrap();
+            vg.add_edge(Arrow::simple_with_properties("", props), *v1, *v2)
+        }
+        let mut svg = SVGWriter::new();
+        
         vg.do_it(false, false, false, &mut svg);
         svg.finalize()
     }

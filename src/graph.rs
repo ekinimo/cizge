@@ -10,7 +10,6 @@ use std::slice::{Iter, IterMut};
 use bit_matrix::row::BitSlice;
 use bit_matrix::BitMatrix;
 
-use bitvector::BitVector;
 
 
 
@@ -705,8 +704,4 @@ impl From<AdjecencyMatrix> for AdjecencyList {
 }
 
 
-struct MyBitMatrix{
-    size:usize,
-    elems: BitVector
-}
 
