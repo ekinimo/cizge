@@ -364,27 +364,29 @@ impl AdjList {
                     Ok(s) => {s},
                     Err(s) => {format!("<div>{s}</div>")},
                 };
+                log(&html);
                 let math_elem = format!("<math xmlns=\"http://www.w3.org/1998/Math/MathML\" id=math display=\"inline\"  overflow=\"scale\">");
                 let orig_html = html.replace("<math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"inline\">", &math_elem);
-                let html = format!("{}{}{}{}{}",
-                                  format!("<g ><foreignObject id=foreign>"),
+                let html = format!("{}{}{}",
+                                  
                                   format!("   <div xmlns=\"http://www.w3.org/1999/xhtml\"  >"),
                                   orig_html,
                                   "   </div>",
-                                  "</foreignObject></g>",
+                                  
                 );
 
                 //let shape = ShapeKind::Box(x.into());
                 let h =getElemHeight(&html);
                 let w =getElemWidth(&html);
-
+                let orig_html = orig_html.replace("<math ", &format!("<math width={w} height={h} "));
                 let size = Point::new(w as f64 +15.0, h as f64+15.);
                 let html = format!("{}{}{}",
-                                   format!("   <div xmlns=\"http://www.w3.org/1999/xhtml\"  >"),
+                                   format!("   <div width={w} height={h} xmlns=\"http://www.w3.org/1999/xhtml\"  >"),
                                    orig_html,
                                    "   </div>",
                                    
                 );
+                log(&html);
                 let props = format!(" id=\"node-{}\"",x.0);
 
                 let shape = ShapeKind::Box(ShapeInner::ForeignElement(html, Point::new(w as f64, h as f64)));
