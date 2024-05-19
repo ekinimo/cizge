@@ -7,7 +7,7 @@ function drawGraph(ret){
     console.log(elem);
     elem.innerHTML = ret.get_svg();
     
-    Array.from(document.getElementById("nodes").getElementsByTagName("g")).forEach(n => {
+    Array.from(document.getElementsByTagName("g")).forEach(n => {
         const [name,vertex1,vertex2] = n.id.split("--");
         if (name==="node"){
             n.addEventListener("click", () => {

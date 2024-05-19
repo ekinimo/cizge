@@ -4,22 +4,19 @@ mod utils;
 use graph::{AddOrRemoveEdge, AdjecencyList, GetVertex};
 //use graph::Graph;
 use layout::{
+    backends::svg::SVGWriter,
     core::{base::Orientation, color::Color, geometry::Point, style::StyleAttr},
-    std_shapes::shapes::{Arrow, Element, ShapeKind, ShapeInner},
-    topo::layout::VisualGraph, backends::svg::SVGWriter,
+    std_shapes::shapes::{Arrow, Element, ShapeInner, ShapeKind},
+    topo::layout::VisualGraph,
 };
 use std::{
     cell::RefCell,
     collections::{hash_set, vec_deque, HashMap, HashSet, VecDeque},
-    rc::Rc, fmt::format,
+    fmt::format,
+    rc::Rc,
 };
-use std::{
-    fmt::Display,
-    hash::Hash,
-    ops::{Shl},
-};
+use std::{fmt::Display, hash::Hash, ops::Shl};
 use wasm_bindgen::prelude::*;
-
 
 #[wasm_bindgen]
 extern "C" {
@@ -31,10 +28,9 @@ extern "C" {
 
 #[wasm_bindgen(module = "/js_funcs.js")]
 extern "C" {
-    fn getElemHeight(s:&str) -> usize;
-    fn getElemWidth(s:&str) -> usize;
+    fn getElemHeight(s: &str) -> usize;
+    fn getElemWidth(s: &str) -> usize;
 }
-
 
 #[wasm_bindgen]
 pub fn greet() {
@@ -81,7 +77,6 @@ pub struct AdjList {
 
 #[wasm_bindgen]
 impl AdjList {
-    
     pub fn new() -> Self {
         Self::default()
     }
@@ -130,7 +125,7 @@ impl AdjList {
                 None => {}
             }
         }
-        
+
         vars.push('\n');
         for _ in 0..len + 10 {
             vars.push(' ');
@@ -331,7 +326,7 @@ impl AdjList {
         Vertex: Display,
     {
         use crate::graph::DirectedGraph;
-        
+
         let (adjl, names): (AdjecencyList, _) = self.into();
         let scc = adjl.SCC();
         //let mut col = 0xDEADCAB;
@@ -345,7 +340,7 @@ impl AdjList {
         for group in scc {
             for elem in group {
                 let col = hsv2rgb(start, 0.3, 0.95);
-        
+
                 style_map.insert(names[elem], col);
             }
 
@@ -360,67 +355,95 @@ impl AdjList {
             let col = style_map.get(x).unwrap();
             let look = StyleAttr::new(Color::new(0xffffff), 1, Some(Color::new(*col)), 5, 10);
             if x.0.starts_with("__") && x.0.ends_with("__") {
-                let html = match latex2mathml::latex_to_mathml(&x.0[2..x.0.len()-2],latex2mathml::DisplayStyle::Inline).map_err(|x|x.to_string()) {
-                    Ok(s) => {s},
-                    Err(s) => {format!("<div>{s}</div>")},
+                let html = match latex2mathml::latex_to_mathml(
+                    &x.0[2..x.0.len() - 2],
+                    latex2mathml::DisplayStyle::Inline,
+                )
+                .map_err(|x| x.to_string())
+                {
+                    Ok(s) => s,
+                    Err(s) => {
+                        format!("<div>{s}</div>")
+                    }
                 };
                 log(&html);
                 let math_elem = format!("<math xmlns=\"http://www.w3.org/1998/Math/MathML\" id=math display=\"inline\"  overflow=\"scale\">");
-                let orig_html = html.replace("<math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"inline\">", &math_elem);
-                let html = format!("{}{}{}",
-                                  
-                                  format!("   <div xmlns=\"http://www.w3.org/1999/xhtml\"  >"),
-                                  orig_html,
-                                  "   </div>",
-                                  
+                let orig_html = html.replace(
+                    "<math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"inline\">",
+                    &math_elem,
+                );
+
+                let orig_html_without_id = html.replace(
+                    "<math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"inline\">",
+                    &format!("<math xmlns=\"http://www.w3.org/1998/Math/MathML\"  display=\"inline\"  overflow=\"scale\">"),
+                );
+
+                let html = format!(
+                    "{}{}{}",
+                    format!("   <div xmlns=\"http://www.w3.org/1999/xhtml\"  >"),
+                    orig_html,
+                    "   </div>",
                 );
 
                 //let shape = ShapeKind::Box(x.into());
-                let h =getElemHeight(&html);
-                let w =getElemWidth(&html);
-                let orig_html = orig_html.replace("<math ", &format!("<math width={w} height={h} "));
-                let size = Point::new(w as f64 +15.0, h as f64+15.);
-                let html = format!("{}{}{}",
-                                   format!("   <div width={w} height={h} xmlns=\"http://www.w3.org/1999/xhtml\"  >"),
-                                   orig_html,
-                                   "   </div>",
-                                   
+                let h = getElemHeight(&html);
+                let w = getElemWidth(&html);
+                //let orig_html =
+                //    orig_html.replace("<math ", &format!("<math width={w} height={h} "));
+                let size = Point::new(w as f64 + 15.0, h as f64 + 15.);
+                let html = format!(
+                    "{}{}{}",
+                    "   <div xmlns=\"http://www.w3.org/1999/xhtml\"  >", orig_html_without_id, "   </div>",
                 );
                 log(&html);
-                let props = format!(" id=\"node-{}\"",x.0);
+                let props = format!(" id=\"node--{}\" class=\"graph_elem\"", x.0);
 
-                let shape = ShapeKind::Box(ShapeInner::ForeignElement(html, Point::new(w as f64, h as f64)));
-                let elem= Element::create_with_properties(shape, look, Orientation::LeftToRight, size, props);
+                let shape = ShapeKind::Box(ShapeInner::ForeignElement(
+                    html,
+                    Point::new(w as f64, h as f64),
+                ));
+                let elem = Element::create_with_properties(
+                    shape,
+                    look,
+                    Orientation::LeftToRight,
+                    size,
+                    props,
+                );
                 // = Element::create(shape, look, Orientation::LeftToRight, size);
                 let handle = vg.add_node(elem);
                 map.insert(x, handle);
-            }else{
-                
+            } else {
                 let shape = ShapeKind::Box(ShapeInner::Text(x.0.clone()));
-                
-                let width: f64 = 
-                    5. * f64::from(x.0.len() as u32)
-                ;
+
+                let width: f64 = 5. * f64::from(x.0.len() as u32);
                 let size = Point::new(35. + width, 35.);
-                let props = format!(" id=\"node-{}\"",x.0);
-                
-                let elem = Element::create_with_properties(shape, look, Orientation::LeftToRight, size,props);
+                let props = format!(" id=\"node--{}\" class=\"graph_elem\"", x.0);
+
+                let elem = Element::create_with_properties(
+                    shape,
+                    look,
+                    Orientation::LeftToRight,
+                    size,
+                    props,
+                );
                 let handle = vg.add_node(elem);
                 map.insert(x, handle);
             }
-
-            
         }
-        for Edge(v1, v2)  in self.get_edges().iter(){
-            let props = format!(" id=\"edge-{}-{}\"",v1.0,v2.0);
+        for Edge(v1, v2) in self.get_edges().iter() {
+            let props = format!(" id=\"edge--{}--{}\" class=\"graph_elem\"", v1.0, v2.0);
             let v1 = map.get(v1).unwrap();
             let v2 = map.get(v2).unwrap();
             vg.add_edge(Arrow::simple_with_properties("", props), *v1, *v2)
         }
         let mut svg = SVGWriter::new();
-        
+
         vg.do_it(false, false, false, &mut svg);
-        svg.finalize()
+        let s = svg.finalize();
+        s.replace(
+            "xmlns=\"http://www.w3.org/2000/svg\"",
+            "xmlns=\"http://www.w3.org/2000/svg\" xmlns:xhtml=\"http://www.w3.org/1999/xhtml\"",
+        )
     }
 }
 
@@ -715,7 +738,6 @@ fn hsv2rgb(h: f32, s: f32, v: f32) -> u32 {
     let r = (255.0 * r).round() as u32;
     let g = (255.0 * g).round() as u32;
     let b = (255.0 * b).round() as u32;
-    
-    
+
     r.shl(16) | g.shl(8) | b
 }
