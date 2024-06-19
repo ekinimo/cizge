@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" dir="ltr">
+
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Çizge</title>
+     
+
+<style>
+     
+     .graph_elem polygon:hover {
+         fill: orange;
+     }
+     .graph_elem rect:hover {
+         fill: orange
+     }
+     .graph_elem path:hover {
+         
+         stroke:orange;
+     }
+     .graph_elem ellipse:hover {
+         fill: orange
+     }
+          
+     .box {
+         display: flex;
+         flex-direction: column;
+         
+         position: absolute; top: 0; left: 0; height: 100%; width: 100%;
+
+     }
+     
+
+     .one {
+         flex: 1 1 auto;
+         
+         overflow:auto
+     }
+
+     .two {
+         flex: 1 0 0;
+         
+     }
+
+     .three {
+         flex: 1 1 1;
+         
+         overflow:auto
+     }
+
+     .box2 {
+         display: flex;
+         
+     }
+
+     .measure {
+         
+         
+         width: fit-content;
+         position: absolute;
+         visibility: hidden;
+         left: -1000px;
+         top: -1000px ;
+     }
+    </style>
+  </head>
+  <body>
+   
+      <div class="box" >
+          <div class ="one" >
+              <div  >
+                  
+                  <div id="img" >         </div>
+          </div>
+          </div>
+          <div class="two">
+          </div>
+          <div class="three">
+              <div class="box2">
+                  <div class="one"> <textarea  class="one" id="text_area" autofocus="true" cols="80" rows =" 30"
+                                               placeholder="
+Some examples to try and see what happens:
+a -> b <- c
+
+__\alpha+\beta__
+
+x -> ( d e f )
+
+( t1 t2 ) -> ( t3 t4 t5 )
+
+( 1 2 ) => ( 3 4  )
+
+( a1  a2  a3 a4 a5 )   =>  ( ( a2 a3 a5 )
+                           ( a4 )
+                           ( a1 )
+                           ( a1 a5 a2 )
+                           ( a2 )
+                           )
+
+
+                           "></textarea>  </div>
+              </div>
+                  
+          </div>
+          
+          
+          <noscript>This page contains webassembly and javascript content, please enable javascript in your browser.</noscript>
+      <script src="./bootstrap.js"></script>
+      
+    
+  </body>
+</html>
